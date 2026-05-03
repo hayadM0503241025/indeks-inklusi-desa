@@ -1,0 +1,4 @@
+﻿interpretasi_gini,rentang_gini,jumlah_desa,persentase_desa,total_desa,batas_bawah,batas_atas
+Rendah,<= 0.15659,35,0.333333,105,0.103281,0.15659
+Sedang,0.15759 - 0.17950,35,0.333333,105,0.15759,0.179502
+Tinggi,>= 0.17980,35,0.333333,105,0.179798,0.245026

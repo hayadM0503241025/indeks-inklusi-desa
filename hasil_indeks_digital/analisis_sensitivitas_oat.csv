@@ -1,0 +1,6 @@
+﻿"Dimensi","Rata-rata Delta IID Desa","Rata-rata Kenaikan IID Desa (%)","Rata-rata Delta Deprivasi Digital","Rata-rata Penurunan Deprivasi Digital (%)","Skenario OAT"
+"Akses perangkat (A)","0.0025","0.46863","-0.0025","0.543841","+0.01 (1 persen) pada dimensi (skala 0-1), lalu dihitung perubahan IID Desa dan deprivasi digital sebagai 1 - IID"
+"Konektivitas internet (B)","0.0025","0.46863","-0.0025","0.543841","+0.01 (1 persen) pada dimensi (skala 0-1), lalu dihitung perubahan IID Desa dan deprivasi digital sebagai 1 - IID"
+"Kapasitas manusia (C)","0.002","0.374903","-0.002","0.435072","+0.01 (1 persen) pada dimensi (skala 0-1), lalu dihitung perubahan IID Desa dan deprivasi digital sebagai 1 - IID"
+"Penggunaan digital (D)","0.002","0.374903","-0.002","0.435072","+0.01 (1 persen) pada dimensi (skala 0-1), lalu dihitung perubahan IID Desa dan deprivasi digital sebagai 1 - IID"
+"Lingkungan pendukung sosial (E)","0.001","0.187451","-0.001","0.217535","+0.01 (1 persen) pada dimensi (skala 0-1), lalu dihitung perubahan IID Desa dan deprivasi digital sebagai 1 - IID"

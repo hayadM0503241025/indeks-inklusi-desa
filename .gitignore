@@ -1,0 +1,17 @@
+.venv/
+venv/
+.streamlit_runtime/
+__pycache__/
+*.py[cod]
+
+.streamlit_start_*.log
+.streamlit_start_*.err
+
+data_asli.csv
+data_asli.xlsx
+data_asli.xls
+hasil-olah-data.zip
+
+hasil_indeks_digital/hasil_olahdata.xlsx
+hasil_indeks_digital/data_keluarga.csv
+hasil_indeks_digital/kontributor_ketimpangan.csv

@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap');
+
+:root {
+    --primary: #00254F;
+    --danger: #8B0000;
+    --success: #2E7D32;
+    --info: #0277BD;
+    --bg-light: #F8FAFC;
+}
+
+.stApp {
+    background-color: var(--bg-light);
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Sidebar Styling */
+section[data-testid="stSidebar"] {
+    background-color: #FFFFFF !important;
+    border-right: 1px solid #E2E8F0;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.02);
+}
+
+/* KPI Card Modern dengan Gradient */
+.kpi-wrapper {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    flex: 1;
+    padding: 24px;
+    border-radius: 16px;
+    color: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+
+.bg-blue-gradient { background: linear-gradient(135deg, #00254F 0%, #1e4b8a 100%); }
+.bg-green-gradient { background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%); }
+.bg-red-gradient { background: linear-gradient(135deg, #8B0000 0%, #d32f2f 100%); }
+.bg-cyan-gradient { background: linear-gradient(135deg, #00838F 0%, #00ACC1 100%); }
+
+.kpi-card h3 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.kpi-card p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    font-weight: 500;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Container Log Statistik */
+.stats-container {
+    background: #FFFFFF;
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid #E2E8F0;
+    font-family: 'Fira Code', monospace;
+    color: #1E293B;
+    line-height: 1.8;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+/* Pilar Penjelasan Berwarna */
+.explanation-pillar {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    border-top: 5px solid var(--primary);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    height: 100%;
+}
+
+.main-header {
+    background: linear-gradient(to right, var(--primary), #1e4b8a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+}

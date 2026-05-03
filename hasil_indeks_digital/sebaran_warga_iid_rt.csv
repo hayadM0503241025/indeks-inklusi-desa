@@ -1,0 +1,7 @@
+﻿kategori_iid_rt,rentang_iid_rt,jumlah_warga,persentase_warga,total_warga
+sangat rendah,"0,00-0,20",9830,0.030837,318773
+rendah,">0,20-0,40",23968,0.075188,318773
+sedang,">0,40-0,60",137373,0.430943,318773
+tinggi,">0,60-0,80",136616,0.428568,318773
+sangat tinggi,">0,80-1,00",10946,0.034338,318773
+tanpa skor IID-RT,RT tidak valid/tidak diberi skor,40,0.000125,318773

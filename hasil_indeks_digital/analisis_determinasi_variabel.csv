@@ -1,0 +1,14 @@
+﻿Dimensi,Variabel,R2 Dimensi,R2 IID Desa
+Akses perangkat (A),Kepemilikan HP rumah tangga (A1),0.803529,0.501293
+Akses perangkat (A),Kecukupan HP (A2),0.606129,0.344946
+Akses perangkat (A),Kepemilikan perangkat digital produktif (A3),0.07726,0.178936
+Konektivitas internet (B),Akses internet rumah tangga (B1),1,0.620377
+Kapasitas manusia (C),Pendidikan terakhir kepala keluarga (C1),0.969805,0.527052
+Kapasitas manusia (C),Rasio partisipasi sekolah (C2),0.632811,0.250984
+Penggunaan digital (D),Penggunaan media sosial (D1),0.301874,0.072735
+Penggunaan digital (D),Akses media informasi (D2),0.243975,0.273092
+Penggunaan digital (D),Partisipasi informasi/kebijakan (D3),0.370638,0.072556
+Lingkungan pendukung sosial (E),Keterlibatan organisasi kepala keluarga (E1),0.468116,0.14647
+Lingkungan pendukung sosial (E),Keterlibatan organisasi anggota keluarga (E2),0.378594,0.026187
+Lingkungan pendukung sosial (E),Partisipasi kepala keluarga pada kegiatan masyarakat (E3),0.273334,0.046372
+Lingkungan pendukung sosial (E),Partisipasi anggota keluarga pada kegiatan masyarakat (E4),0.304356,0.038404
