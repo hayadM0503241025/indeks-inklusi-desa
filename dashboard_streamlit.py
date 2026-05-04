@@ -870,6 +870,15 @@ def translate_display_text(value: Any, column_name: str | None = None) -> Any:
     return translated_text
 
 
+def format_display_cell(value: Any) -> str:
+    try:
+        if bool(pd.isna(value)):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(value)
+
+
 def prepare_display_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     display_df = df.copy()
     for column in display_df.columns:
@@ -881,7 +890,15 @@ def prepare_display_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             or isinstance(display_df[column].dtype, pd.CategoricalDtype)
         ):
             display_df[column] = display_df[column].map(lambda value, col=column: translate_display_text(value, col))
-    return display_df.rename(columns={column: DISPLAY_COLUMN_LABELS.get(column, column) for column in display_df.columns})
+    display_df = display_df.rename(columns={column: DISPLAY_COLUMN_LABELS.get(column, column) for column in display_df.columns})
+    for column in display_df.columns:
+        if (
+            pd.api.types.is_object_dtype(display_df[column])
+            or pd.api.types.is_string_dtype(display_df[column])
+            or isinstance(display_df[column].dtype, pd.CategoricalDtype)
+        ):
+            display_df[column] = display_df[column].map(format_display_cell)
+    return display_df
 
 
 def build_file_signature(path: Path) -> str:
@@ -1726,7 +1743,7 @@ def format_journal_dataframe(
     for column in score_columns:
         if column in display_df.columns:
             display_df[column] = pd.to_numeric(display_df[column], errors="coerce").round(3)
-    return display_df
+    return prepare_display_dataframe(display_df)
 
 
 def add_journal_village_name(
@@ -3457,11 +3474,11 @@ def build_table_overview(df: pd.DataFrame) -> pd.DataFrame:
     numeric_count = int(len(df.select_dtypes(include="number").columns))
     text_count = int(len(df.columns) - numeric_count)
     overview_rows = [
-        {"Metric": "Rows", "Value": int(df.shape[0])},
-        {"Metric": "Columns", "Value": int(df.shape[1])},
-        {"Metric": "Numeric Columns", "Value": numeric_count},
-        {"Metric": "Non-Numeric Columns", "Value": text_count},
-        {"Metric": "Missing Cells", "Value": missing_cells},
+        {"Metric": "Rows", "Value": format_number(int(df.shape[0]), 0)},
+        {"Metric": "Columns", "Value": format_number(int(df.shape[1]), 0)},
+        {"Metric": "Numeric Columns", "Value": format_number(numeric_count, 0)},
+        {"Metric": "Non-Numeric Columns", "Value": format_number(text_count, 0)},
+        {"Metric": "Missing Cells", "Value": format_number(missing_cells, 0)},
         {"Metric": "Missing Cell Share", "Value": format_percent(missing_cells / total_cells if total_cells else 0)},
     ]
     return pd.DataFrame(overview_rows)
@@ -3498,12 +3515,12 @@ def render_column_detail(df: pd.DataFrame, column_name: str) -> None:
     if pd.api.types.is_numeric_dtype(series):
         stats_df = series.describe(percentiles=[0.25, 0.5, 0.75]).rename("Value").reset_index()
         stats_df.columns = ["Statistic", "Value"]
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        st.dataframe(stats_df, width="stretch", hide_index=True)
     else:
         top_values = series.fillna("NA").astype(str).value_counts().head(10).reset_index()
         top_values.columns = ["Value", "Frequency"]
         top_values["Value"] = top_values["Value"].map(lambda value: translate_display_text(value, column_name))
-        st.dataframe(top_values, use_container_width=True, hide_index=True)
+        st.dataframe(top_values, width="stretch", hide_index=True)
 
 
 def csv_bytes(df: pd.DataFrame) -> bytes:
@@ -3667,31 +3684,31 @@ def render_household_resource_section(detail_df: pd.DataFrame, section_key: str)
     chart_cols = st.columns(2)
     chart_cols[0].plotly_chart(
         build_household_average_figure(detail_df),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_key}_avg_hp_members",
     )
     chart_cols[1].plotly_chart(
         build_comm_cost_distribution_figure(detail_df),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_key}_comm_distribution",
     )
 
     bottom_cols = st.columns(2)
     bottom_cols[0].plotly_chart(
         build_household_resource_by_desa_figure(detail_df, "hp_jumlah_num"),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_key}_hp_by_desa",
     )
     bottom_cols[1].plotly_chart(
         build_household_resource_by_desa_figure(detail_df, "jml_keluarga"),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_key}_members_by_desa",
     )
 
     if "rp_komunikasi_tertinggi" in detail_df.columns and detail_df["rp_komunikasi_tertinggi"].notna().any():
         st.plotly_chart(
             build_household_resource_by_desa_figure(detail_df, "rp_komunikasi_tertinggi"),
-            use_container_width=True,
+            width="stretch",
             key=f"{section_key}_comm_by_desa",
         )
 
@@ -3730,7 +3747,7 @@ def render_overall_inequality_section(tables: dict[str, pd.DataFrame]) -> None:
             overall_contributors,
             title="Households with the Largest Overall Contributions to Inequality",
         ),
-        use_container_width=True,
+        width="stretch",
         key="overall_inequality_contributors",
     )
     chart_cols[0].caption(
@@ -3753,7 +3770,7 @@ def render_overall_inequality_section(tables: dict[str, pd.DataFrame]) -> None:
             preview_df["porsi_kontribusi_gini"] = preview_df["porsi_kontribusi_gini"].map(
                 lambda value: format_percent(value)
             )
-        st.dataframe(prepare_display_dataframe(preview_df), use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(preview_df), width="stretch", hide_index=True)
 
 
 def render_summary_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
@@ -3773,12 +3790,12 @@ def render_summary_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame)
         chart_cols = st.columns(2)
         chart_cols[0].plotly_chart(
             build_category_count_figure(household_df),
-            use_container_width=True,
+            width="stretch",
             key="summary_category_count",
         )
         chart_cols[1].plotly_chart(
             build_household_histogram_figure(household_df),
-            use_container_width=True,
+            width="stretch",
             key="summary_household_histogram",
         )
 
@@ -3786,7 +3803,7 @@ def render_summary_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame)
         warga_col, ringkas_col = st.columns([1.15, 0.85])
         warga_col.plotly_chart(
             build_person_distribution_figure(warga_df),
-            use_container_width=True,
+            width="stretch",
             key="summary_person_distribution",
         )
         with ringkas_col:
@@ -3795,14 +3812,14 @@ def render_summary_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame)
             if summary_df.empty:
                 st.info("The processing summary is not available for this data source.")
             else:
-                st.dataframe(prepare_display_dataframe(summary_df), use_container_width=True, hide_index=True)
+                st.dataframe(prepare_display_dataframe(summary_df), width="stretch", hide_index=True)
     elif not desa_df.empty:
         st.markdown("### Processing Summary")
         summary_df = tables.get("ringkasan_pengolahan", pd.DataFrame())
         if summary_df.empty:
             st.info("The processing summary is not available for this data source.")
         else:
-            st.dataframe(prepare_display_dataframe(summary_df), use_container_width=True, hide_index=True)
+            st.dataframe(prepare_display_dataframe(summary_df), width="stretch", hide_index=True)
 
     st.markdown("### Household Resources and Communication Expenditure")
     st.caption("These statistics are computed at the valid-household level.")
@@ -3850,12 +3867,12 @@ def render_household_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFram
     chart_cols = st.columns(2)
     chart_cols[0].plotly_chart(
         build_category_count_figure(filtered_df),
-        use_container_width=True,
+        width="stretch",
         key="household_category_count",
     )
     chart_cols[1].plotly_chart(
         build_household_histogram_figure(filtered_df),
-        use_container_width=True,
+        width="stretch",
         key="household_histogram",
     )
 
@@ -3864,11 +3881,11 @@ def render_household_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFram
 
     map_figure = build_map_figure(filtered_df)
     if map_figure is not None:
-        st.plotly_chart(map_figure, use_container_width=True, key="household_map")
+        st.plotly_chart(map_figure, width="stretch", key="household_map")
 
     preview_columns = [column for column in ("family_id", "deskel", "iid_rumah_tangga", "kategori_iid_rt", "dimensi_A", "dimensi_B", "dimensi_C", "dimensi_D", "dimensi_E") if column in filtered_df.columns]
     st.markdown("### Valid Household Data Preview")
-    st.dataframe(prepare_display_dataframe(filtered_df[preview_columns].head(200)), use_container_width=True, hide_index=True)
+    st.dataframe(prepare_display_dataframe(filtered_df[preview_columns].head(200)), width="stretch", hide_index=True)
 
 
 def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
@@ -3893,24 +3910,24 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     top_cols = st.columns(2)
     top_cols[0].plotly_chart(
         build_top_bottom_desa_figure(desa_df, "top"),
-        use_container_width=True,
+        width="stretch",
         key="desa_top_iid",
     )
     top_cols[1].plotly_chart(
         build_top_bottom_desa_figure(desa_df, "bottom"),
-        use_container_width=True,
+        width="stretch",
         key="desa_bottom_iid",
     )
 
     mid_cols = st.columns(2)
     mid_cols[0].plotly_chart(
         build_dimension_profile_figure(desa_df),
-        use_container_width=True,
+        width="stretch",
         key="desa_dimension_profile",
     )
     mid_cols[1].plotly_chart(
         build_gini_scatter_figure(desa_df),
-        use_container_width=True,
+        width="stretch",
         key="desa_gini_scatter",
     )
 
@@ -3927,7 +3944,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         gini_preview_df = gini_distribution_df[preview_columns].copy()
         if "persentase_desa" in gini_preview_df.columns:
             gini_preview_df["persentase_desa"] = gini_preview_df["persentase_desa"].map(format_percent)
-        st.dataframe(prepare_display_dataframe(gini_preview_df), use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(gini_preview_df), width="stretch", hide_index=True)
 
     if not distribution_df.empty:
         st.markdown("### Household Digital Inclusion Categories across Villages")
@@ -3958,7 +3975,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
             )
             st.plotly_chart(
                 build_desa_distribution_heatmap(pivot_df),
-                use_container_width=True,
+                width="stretch",
                 key="desa_distribution_heatmap",
             )
             selected_meta = distribution_meta_df.loc[
@@ -3978,7 +3995,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
                     )
             st.plotly_chart(
                 build_desa_distribution_focus_figure(distribution_df, selected_desa_distribution),
-                use_container_width=True,
+                width="stretch",
                 key="desa_distribution_focus_chart",
             )
 
@@ -4129,7 +4146,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
                         filtered_contributors,
                         title=f"Largest Inequality Contributors{title_suffix} in {selected_info['deskel']}",
                     ),
-                    use_container_width=True,
+                    width="stretch",
                     key="desa_selected_inequality_contributors",
                 )
                 st.caption(
@@ -4145,7 +4162,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
                         kind="mergesort",
                     )
                 )
-                st.dataframe(profile_preview_df, use_container_width=True, hide_index=True)
+                st.dataframe(prepare_display_dataframe(profile_preview_df), width="stretch", hide_index=True)
 
         ranking_columns = [
             column
@@ -4167,7 +4184,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         ).copy()
         if "porsi_kontributor_utama" in ranking_df.columns:
             ranking_df["porsi_kontributor_utama"] = ranking_df["porsi_kontributor_utama"].map(format_percent)
-        st.dataframe(prepare_display_dataframe(ranking_df), use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(ranking_df), width="stretch", hide_index=True)
 
     if {"ikd_desa", "ikd_tertil", "kategori_tertil"}.issubset(desa_df.columns):
         st.markdown("### Villages by Relative Digital Deprivation Tertile")
@@ -4177,12 +4194,12 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         tertile_cols = st.columns(2)
         tertile_cols[0].plotly_chart(
             build_ikd_tertile_distribution_figure(desa_df),
-            use_container_width=True,
+            width="stretch",
             key="desa_ikd_tertile_distribution",
         )
         tertile_cols[1].plotly_chart(
             build_ikd_tertile_scatter_figure(desa_df),
-            use_container_width=True,
+            width="stretch",
             key="desa_ikd_tertile_scatter",
         )
 
@@ -4193,12 +4210,12 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         ]
         st.dataframe(
             prepare_display_dataframe(desa_df[tertile_preview_columns].sort_values("ikd_desa", ascending=True)),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
     st.markdown("### Village Index Preview")
-    st.dataframe(prepare_display_dataframe(desa_df.head(100)), use_container_width=True, hide_index=True)
+    st.dataframe(prepare_display_dataframe(desa_df.head(100)), width="stretch", hide_index=True)
 
 
 def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
@@ -4262,7 +4279,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                 ):
                     column_container.plotly_chart(
                         figure,
-                        use_container_width=True,
+                        width="stretch",
                         key=f"journal_raw_household_characteristic_{index + chart_offset}",
                     )
         else:
@@ -4275,13 +4292,13 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                 profile_cols = st.columns([0.95, 1.05])
                 profile_cols[0].plotly_chart(
                     build_journal_domain_profile_figure(domain_profile_df),
-                    use_container_width=True,
+                    width="stretch",
                     key="journal_domain_profile",
                 )
                 if not indicator_profile_df.empty:
                     profile_cols[1].plotly_chart(
                         build_journal_indicator_profile_figure(indicator_profile_df),
-                        use_container_width=True,
+                        width="stretch",
                         key="journal_indicator_profile",
                     )
                     st.dataframe(
@@ -4290,7 +4307,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                             integer_columns=("Valid Households",),
                             score_columns=("Mean Score", "Median Score"),
                         ),
-                        use_container_width=True,
+                        width="stretch",
                         hide_index=True,
                     )
 
@@ -4302,12 +4319,12 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
         distribution_cols = st.columns(2)
         distribution_cols[0].plotly_chart(
             build_journal_household_histogram_figure(household_df),
-            use_container_width=True,
+            width="stretch",
             key="journal_household_histogram",
         )
         distribution_cols[1].plotly_chart(
             build_journal_category_share_figure(category_share_df),
-            use_container_width=True,
+            width="stretch",
             key="journal_category_share",
         )
 
@@ -4323,7 +4340,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
             selected_box_villages = village_options[box_start:box_end]
             st.plotly_chart(
                 build_journal_household_boxplot_figure(household_df, selected_box_villages),
-                use_container_width=True,
+                width="stretch",
                 key="journal_household_boxplot",
             )
 
@@ -4341,7 +4358,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                     top_n=JOURNAL_VILLAGE_PAGE_SIZE,
                     offset=vulnerability_start,
                 ),
-                use_container_width=True,
+                width="stretch",
                 key="journal_vulnerability_villages",
             )
             vulnerability_columns = [
@@ -4360,7 +4377,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                     integer_columns=("Households", "Vulnerable Households"),
                     score_columns=tuple(column for column in vulnerability_columns if column.startswith("Mean ")),
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -4409,7 +4426,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                 top_n=JOURNAL_VILLAGE_PAGE_SIZE,
                 offset=ranking_start,
             ),
-            use_container_width=True,
+            width="stretch",
             key="journal_highest_village_index",
         )
         village_chart_cols[1].plotly_chart(
@@ -4419,7 +4436,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                 top_n=JOURNAL_VILLAGE_PAGE_SIZE,
                 offset=ranking_start,
             ),
-            use_container_width=True,
+            width="stretch",
             key="journal_lowest_village_index",
         )
 
@@ -4434,13 +4451,13 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                     "Within-Village Gini",
                 ),
             ),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
         map_figure = build_journal_village_map_figure(village_df)
         if map_figure is not None:
-            st.plotly_chart(map_figure, use_container_width=True, key="journal_village_index_map")
+            st.plotly_chart(map_figure, width="stretch", key="journal_village_index_map")
         else:
             st.info("Village centroid coordinates are not available for the spatial map.")
 
@@ -4469,7 +4486,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
             dimension_cols = st.columns([0.9, 1.1])
             dimension_cols[0].plotly_chart(
                 build_journal_dimension_bar_figure(dimension_strength_df),
-                use_container_width=True,
+                width="stretch",
                 key="journal_dimension_strength",
             )
             village_options = village_df.sort_values("iid_desa", ascending=False, kind="mergesort")["Village"].tolist()
@@ -4493,7 +4510,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
             if selected_radar_villages:
                 dimension_cols[1].plotly_chart(
                     build_journal_dimension_radar_figure(village_df, selected_radar_villages),
-                    use_container_width=True,
+                    width="stretch",
                     key="journal_dimension_radar",
                 )
 
@@ -4511,7 +4528,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                     limit=JOURNAL_VILLAGE_PAGE_SIZE,
                     offset=heatmap_start,
                 ),
-                use_container_width=True,
+                width="stretch",
                 key="journal_dimension_heatmap",
             )
 
@@ -4523,7 +4540,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                         integer_columns=("Lag Rank",),
                         score_columns=("Dimension Score", "Village Digital Inclusion Index"),
                     ),
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -4543,7 +4560,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
         deprivation_cols = st.columns(2)
         deprivation_cols[0].plotly_chart(
             build_journal_deprivation_scatter_figure(village_df),
-            use_container_width=True,
+            width="stretch",
             key="journal_deprivation_gini_scatter",
         )
         deprivation_cols[1].plotly_chart(
@@ -4552,7 +4569,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                 top_n=JOURNAL_VILLAGE_PAGE_SIZE,
                 offset=deprivation_start,
             ),
-            use_container_width=True,
+            width="stretch",
             key="journal_deprivation_bar",
         )
         priority_df, moderate_high_inequality_df = build_journal_deprivation_priority_table(village_df)
@@ -4567,7 +4584,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                     "Within-Village Gini",
                 ),
             ),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
         st.markdown("#### Moderate-Index Villages with High Internal Inequality")
@@ -4590,7 +4607,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                         "Within-Village Gini",
                     ),
                 ),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -4719,7 +4736,7 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
             data=excel_bytes_from_sheets(excel_sheet_map),
             file_name="analisis_lanjutan_iid_desa.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
+            width="stretch",
         )
         csv_download_cols = st.columns(len(download_tables))
         for column_container, (key, df) in zip(csv_download_cols, download_tables.items(), strict=False):
@@ -4729,7 +4746,7 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
                     data=csv_bytes(df),
                     file_name=TABLE_SPECS[key]["filename"],
                     mime="text/csv",
-                    use_container_width=True,
+                    width="stretch",
                     key=f"download_{key}",
                 )
 
@@ -4746,10 +4763,10 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
             )
             st.plotly_chart(
                 build_dimension_determinant_figure(dimension_df),
-                use_container_width=True,
+                width="stretch",
                 key="advanced_dimension_determinant",
             )
-            st.dataframe(with_analysis_metric_display_columns(dimension_df), use_container_width=True, hide_index=True)
+            st.dataframe(with_analysis_metric_display_columns(dimension_df), width="stretch", hide_index=True)
 
     with subtab_variabel:
         if variable_df.empty:
@@ -4778,12 +4795,12 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
             )
             st.plotly_chart(
                 build_variable_determinant_figure(filtered_variable_df, metric_column),
-                use_container_width=True,
+                width="stretch",
                 key="advanced_variable_determinant",
             )
             st.dataframe(
                 with_analysis_metric_display_columns(filtered_variable_df),
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
 
@@ -4811,10 +4828,10 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
             )
             st.plotly_chart(
                 build_oat_sensitivity_figure(dynamic_oat_df),
-                use_container_width=True,
+                width="stretch",
                 key="advanced_oat_sensitivity",
             )
-            st.dataframe(with_analysis_metric_display_columns(iid_pipeline.round_numeric_dataframe(dynamic_oat_df)), use_container_width=True, hide_index=True)
+            st.dataframe(with_analysis_metric_display_columns(iid_pipeline.round_numeric_dataframe(dynamic_oat_df)), width="stretch", hide_index=True)
 
     with subtab_shapley:
         if shapley_df.empty:
@@ -4853,16 +4870,16 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
             )
             st.plotly_chart(
                 build_shapley_figure(filtered_shapley_df.sort_values(shapley_metric, ascending=False), shapley_metric),
-                use_container_width=True,
+                width="stretch",
                 key="advanced_shapley_chart",
             )
             preview_df = filtered_shapley_df.copy()
             for column in ("Proporsi Shapley Dimensi", "Proporsi Shapley IID Desa", "Proporsi Shapley IID"):
                 if column in preview_df.columns:
                     preview_df[column] = preview_df[column].map(
-                    lambda value: format_percent(value) if pd.notna(value) else "-"
+                        lambda value: format_percent(value) if pd.notna(value) else "-"
                     )
-            st.dataframe(with_analysis_metric_display_columns(preview_df), use_container_width=True, hide_index=True)
+            st.dataframe(with_analysis_metric_display_columns(preview_df), width="stretch", hide_index=True)
 
 
 def render_variable_tab(tables: dict[str, pd.DataFrame]) -> None:
@@ -4892,14 +4909,14 @@ def render_variable_tab(tables: dict[str, pd.DataFrame]) -> None:
         filtered_df = filtered_df[keyword_mask]
 
     st.caption(f"Displaying {len(filtered_df):,} variable documentation rows.")
-    st.dataframe(prepare_display_dataframe(filtered_df), use_container_width=True, hide_index=True)
+    st.dataframe(prepare_display_dataframe(filtered_df), width="stretch", hide_index=True)
 
     if not filtered_df.empty and "nama_variabel" in filtered_df.columns:
         chosen_variable = st.selectbox("Select a Variable for Detail Review", options=filtered_df["nama_variabel"].astype(str).tolist())
         selected_row = filtered_df.loc[filtered_df["nama_variabel"].astype(str) == chosen_variable].head(1).T.reset_index()
         selected_row.columns = ["atribut", "nilai"]
         st.markdown("### Variable Detail")
-        st.dataframe(prepare_display_dataframe(selected_row), use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(selected_row), width="stretch", hide_index=True)
 
 
 def render_table_explorer_tab(tables: dict[str, pd.DataFrame]) -> None:
@@ -4916,10 +4933,10 @@ def render_table_explorer_tab(tables: dict[str, pd.DataFrame]) -> None:
     overview_cols = st.columns([0.9, 1.1])
     with overview_cols[0]:
         st.markdown("#### Table Description")
-        st.dataframe(build_table_overview(df), use_container_width=True, hide_index=True)
+        st.dataframe(build_table_overview(df), width="stretch", hide_index=True)
     with overview_cols[1]:
         st.markdown("#### Column Profile")
-        st.dataframe(build_column_profile(df), use_container_width=True, hide_index=True)
+        st.dataframe(build_column_profile(df), width="stretch", hide_index=True)
 
     if len(df.columns) > 0:
         inspected_column = st.selectbox(
@@ -4931,7 +4948,7 @@ def render_table_explorer_tab(tables: dict[str, pd.DataFrame]) -> None:
 
     preview_limit = st.slider("Preview Row Count", min_value=20, max_value=300, value=100, step=20)
     st.markdown("#### Data Preview")
-    st.dataframe(prepare_display_dataframe(df.head(preview_limit)), use_container_width=True, hide_index=True)
+    st.dataframe(prepare_display_dataframe(df.head(preview_limit)), width="stretch", hide_index=True)
 
     st.download_button(
         label=f"Download {spec['filename']}",
@@ -4950,7 +4967,7 @@ def render_scheme_tables(tables: dict[str, pd.DataFrame]) -> None:
     for key in optional_keys:
         st.markdown(f"#### {TABLE_SPECS[key]['label']}")
         st.caption(TABLE_SPECS[key]["description"])
-        st.dataframe(prepare_display_dataframe(tables[key]), use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(tables[key]), width="stretch", hide_index=True)
 
 
 def main() -> None:
