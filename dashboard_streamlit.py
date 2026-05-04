@@ -31,104 +31,104 @@ for directory in (RUNTIME_DIR, UPLOAD_DIR, OUTPUT_CACHE_DIR):
 TABLE_SPECS: dict[str, dict[str, Any]] = {
     "data_keluarga": {
         "filename": "data_keluarga.csv",
-        "label": "Data keluarga",
-        "description": "Hasil akhir tingkat anggota dan rumah tangga. Skor indeks biasanya terisi pada baris kepala keluarga.",
+        "label": "Household Data",
+        "description": "Final member- and household-level output. Index scores are generally recorded on the household-head row.",
         "required": True,
     },
     "indeks_desa": {
         "filename": "indeks_desa.csv",
-        "label": "Indeks desa",
-        "description": "Ringkasan skor indikator, dimensi, IID desa, deprivasi/kesenjangan digital desa, dan ketimpangan per desa/kelurahan.",
+        "label": "Village Index",
+        "description": "Summary of indicator scores, dimension scores, village digital inclusion, digital deprivation, and within-village inequality.",
         "required": True,
     },
     "penjelasan_variabel": {
         "filename": "penjelasan_variabel.csv",
-        "label": "Penjelasan variabel",
-        "description": "Kamus variabel, sumber nilai, aturan skoring, dan keterangan tiap indikator atau dimensi.",
+        "label": "Variable Documentation",
+        "description": "Variable dictionary covering source fields, scoring rules, and notes for each indicator or dimension.",
         "required": True,
     },
     "rumah_tangga_dikeluarkan": {
         "filename": "rumah_tangga_dikeluarkan.csv",
-        "label": "RT dikeluarkan",
-        "description": "Rumah tangga yang tidak masuk perhitungan indeks beserta alasan pengeluarannya.",
+        "label": "Excluded Households",
+        "description": "Households excluded from index calculation, including the reason for exclusion.",
         "required": False,
     },
     "sebaran_iid_rt_desa": {
         "filename": "sebaran_iid_rt_desa.csv",
-        "label": "Sebaran IID-RT per desa",
-        "description": "Distribusi kategori IID-RT di setiap desa/kelurahan.",
+        "label": "Household Index Distribution by Village",
+        "description": "Distribution of household digital inclusion categories in each village.",
         "required": False,
     },
     "sebaran_warga_iid_rt": {
         "filename": "sebaran_warga_iid_rt.csv",
-        "label": "Sebaran warga menurut IID-RT",
-        "description": "Distribusi jumlah dan persentase warga menurut kategori IID-RT.",
+        "label": "Resident Distribution by Household Index",
+        "description": "Distribution of residents by household digital inclusion category.",
         "required": False,
     },
     "ringkasan_pengolahan": {
         "filename": "ringkasan_pengolahan.csv",
-        "label": "Ringkasan pengolahan",
-        "description": "Ringkasan proses olah data dari pipeline, termasuk jumlah RT valid dan aturan usia sekolah.",
+        "label": "Processing Summary",
+        "description": "Processing summary from the pipeline, including valid households and school-age parameters.",
         "required": False,
     },
     "ringkasan_ketimpangan": {
         "filename": "ringkasan_ketimpangan.csv",
-        "label": "Ringkasan ketimpangan",
-        "description": "Ringkasan Gini keseluruhan dan per desa, termasuk kategori dan rumah tangga kontributor utama.",
+        "label": "Inequality Summary",
+        "description": "Overall and village-level Gini summary, including relative category and leading household contributor.",
         "required": False,
     },
     "kontributor_ketimpangan": {
         "filename": "kontributor_ketimpangan.csv",
-        "label": "Kontributor ketimpangan",
-        "description": "Daftar rumah tangga yang berkontribusi pada ketimpangan, baik untuk keseluruhan wilayah maupun per desa.",
+        "label": "Inequality Contributors",
+        "description": "Household contributors to inequality for the full study area and for individual villages.",
         "required": False,
     },
     "sebaran_gini_desa": {
         "filename": "sebaran_gini_desa.csv",
-        "label": "Sebaran Gini desa",
-        "description": "Klasifikasi relatif berbasis tertil untuk Gini IID rumah tangga antar desa dalam sampel penelitian.",
+        "label": "Village Gini Distribution",
+        "description": "Tertile-based relative classification of household-index Gini values across sampled villages.",
         "required": False,
     },
     "batas_kategori_iid_rt": {
         "filename": "batas_kategori_iid_rt.csv",
-        "label": "Batas kategori IID-RT",
-        "description": "Batas bawah dan batas atas kategori IID-RT pada skema rekomendasi.",
+        "label": "Household Index Category Thresholds",
+        "description": "Lower and upper bounds for household digital inclusion categories under the recommended scheme.",
         "required": False,
     },
     "perbandingan_skema": {
         "filename": "perbandingan_skema.csv",
-        "label": "Perbandingan skema",
-        "description": "Perbandingan statistik dan distribusi kategori antara skema baseline dan rekomendasi.",
+        "label": "Scheme Comparison",
+        "description": "Statistical and category-distribution comparison between the baseline and recommended schemes.",
         "required": False,
     },
     "skema_rekomendasi": {
         "filename": "skema_rekomendasi.csv",
-        "label": "Skema rekomendasi",
-        "description": "Spesifikasi komponen, bobot, dan aturan pada skema rekomendasi.",
+        "label": "Recommended Scheme",
+        "description": "Components, weights, and scoring rules used in the recommended scheme.",
         "required": False,
     },
     "analisis_determinasi_dimensi": {
         "filename": "analisis_determinasi_dimensi.csv",
-        "label": "Determinasi dimensi",
-        "description": "Koefisien determinasi tiap dimensi terhadap IID desa pada skala log natural.",
+        "label": "Dimension Determination",
+        "description": "Coefficient of determination for each dimension against the village digital inclusion index on the natural-log scale.",
         "required": False,
     },
     "analisis_determinasi_variabel": {
         "filename": "analisis_determinasi_variabel.csv",
-        "label": "Determinasi variabel",
-        "description": "Koefisien determinasi tiap indikator terhadap dimensinya dan IID desa.",
+        "label": "Indicator Determination",
+        "description": "Coefficient of determination for each indicator against its source dimension and the village digital inclusion index.",
         "required": False,
     },
     "analisis_sensitivitas_oat": {
         "filename": "analisis_sensitivitas_oat.csv",
-        "label": "Sensitivitas OAT",
-        "description": "Simulasi One-At-a-Time dengan kenaikan dimensi yang dipilih pada skala 0-1 untuk membaca perubahan IID Desa dan deprivasi digital.",
+        "label": "OAT Sensitivity",
+        "description": "One-at-a-time simulation using a selected dimension increase on the 0-1 index scale to estimate changes in village inclusion and digital deprivation.",
         "required": False,
     },
     "analisis_shapley_variabel": {
         "filename": "analisis_shapley_variabel.csv",
-        "label": "Kontribusi Shapley variabel",
-        "description": "Kontribusi Shapley R2 tiap indikator dalam menjelaskan dimensi asalnya dan IID Desa.",
+        "label": "Indicator Shapley Contribution",
+        "description": "Shapley R-squared contribution of each indicator in explaining its source dimension and the village digital inclusion index.",
         "required": False,
     },
 }
@@ -145,12 +145,26 @@ CATEGORY_COLORS = {
     "sangat tinggi": "#2563eb",
     iid_pipeline.UNSCORED_IID_CATEGORY_LABEL: "#64748b",
 }
-RED_RANK_ORDER = ["Peringkat 1", "Peringkat 2", "Peringkat 3", "Lainnya"]
+IID_CATEGORY_LABELS = {
+    "sangat rendah": "Very Low",
+    "rendah": "Low",
+    "sedang": "Moderate",
+    "tinggi": "High",
+    "sangat tinggi": "Very High",
+    iid_pipeline.UNSCORED_IID_CATEGORY_LABEL: "Not Scored",
+}
+IID_CATEGORY_ORDER_EN = [IID_CATEGORY_LABELS[category] for category in VISIBLE_CATEGORY_ORDER]
+IID_CATEGORY_COLORS = {
+    IID_CATEGORY_LABELS[category]: color
+    for category, color in CATEGORY_COLORS.items()
+    if category in IID_CATEGORY_LABELS
+}
+RED_RANK_ORDER = ["Rank 1", "Rank 2", "Rank 3", "Other Values"]
 RED_RANK_COLORS = {
-    "Peringkat 1": "#7f1d1d",
-    "Peringkat 2": "#b91c1c",
-    "Peringkat 3": "#ef4444",
-    "Lainnya": "#fecaca",
+    "Rank 1": "#7f1d1d",
+    "Rank 2": "#b91c1c",
+    "Rank 3": "#ef4444",
+    "Other Values": "#fecaca",
 }
 RED_HEATMAP_SCALE = [
     [0.0, "#fff5f5"],
@@ -159,52 +173,56 @@ RED_HEATMAP_SCALE = [
     [0.8, "#dc2626"],
     [1.0, "#7f1d1d"],
 ]
+GINI_LABELS = {
+    "Rendah": "Low",
+    "Sedang": "Moderate",
+    "Tinggi": "High",
+}
 GINI_COLORS = {
-    "Rendah": "#16a34a",
-    "Sedang": "#eab308",
-    "Tinggi": "#dc2626",
+    "Low": "#16a34a",
+    "Moderate": "#eab308",
+    "High": "#dc2626",
+}
+INEQUALITY_DIRECTION_LABELS = {
+    "di bawah rata-rata": "Below Mean",
+    "di atas rata-rata": "Above Mean",
+    "sama dengan rata-rata": "At Mean",
 }
 INEQUALITY_DIRECTION_COLORS = {
-    "di bawah rata-rata": "#b91c1c",
-    "di atas rata-rata": "#0f766e",
-    "sama dengan rata-rata": "#64748b",
+    "Below Mean": "#b91c1c",
+    "Above Mean": "#0f766e",
+    "At Mean": "#64748b",
 }
 IKD_TERTILE_ORDER = ["T1", "T2", "T3"]
-IKD_RELATIVE_ORDER = ["Rendah", "Sedang", "Tinggi"]
+IKD_RELATIVE_ORDER = ["Low", "Moderate", "High"]
 IKD_TERTILE_TO_RELATIVE = {
-    "T1": "Rendah",
-    "T2": "Sedang",
-    "T3": "Tinggi",
+    "T1": "Low",
+    "T2": "Moderate",
+    "T3": "High",
 }
 IKD_TERTILE_LABELS = {
-    "T1": "Tertil 1 - deprivasi digital relatif terendah",
-    "T2": "Tertil 2 - deprivasi digital relatif sedang",
-    "T3": "Tertil 3 - deprivasi digital relatif tertinggi",
+    "T1": "Tertile 1 - Lowest Relative Digital Deprivation",
+    "T2": "Tertile 2 - Moderate Relative Digital Deprivation",
+    "T3": "Tertile 3 - Highest Relative Digital Deprivation",
 }
 IKD_RELATIVE_RANGE_LABELS = {
-    "Rendah": "Tertil 1",
-    "Sedang": "Tertil 2",
-    "Tinggi": "Tertil 3",
+    "Low": "Tertile 1",
+    "Moderate": "Tertile 2",
+    "High": "Tertile 3",
 }
 IKD_RELATIVE_COLORS = {
-    "Rendah": "#16a34a",
-    "Sedang": "#eab308",
-    "Tinggi": "#dc2626",
+    "Low": "#16a34a",
+    "Moderate": "#eab308",
+    "High": "#dc2626",
 }
 DIMENSION_LABELS = {
-    "dimensi_A": "Akses perangkat",
-    "dimensi_B": "Konektivitas internet",
-    "dimensi_C": "Kapasitas manusia",
-    "dimensi_D": "Penggunaan digital",
-    "dimensi_E": "Lingkungan sosial",
+    "dimensi_A": "Device Access",
+    "dimensi_B": "Internet Connectivity",
+    "dimensi_C": "Human Capacity",
+    "dimensi_D": "Digital Use",
+    "dimensi_E": "Social Enabling Environment",
 }
-JOURNAL_CATEGORY_LABELS = {
-    "sangat rendah": "Very Low",
-    "rendah": "Low",
-    "sedang": "Moderate",
-    "tinggi": "High",
-    "sangat tinggi": "Very High",
-}
+JOURNAL_CATEGORY_LABELS = IID_CATEGORY_LABELS
 JOURNAL_CATEGORY_ORDER = ["Very Low", "Low", "Moderate", "High", "Very High"]
 JOURNAL_CATEGORY_COLORS = {
     JOURNAL_CATEGORY_LABELS[category]: CATEGORY_COLORS[category]
@@ -212,9 +230,7 @@ JOURNAL_CATEGORY_COLORS = {
     if category in JOURNAL_CATEGORY_LABELS
 }
 JOURNAL_GINI_LABELS = {
-    "Rendah": "Low",
-    "Sedang": "Moderate",
-    "Tinggi": "High",
+    **GINI_LABELS,
 }
 JOURNAL_DIMENSION_LABELS = {
     "dimensi_A": "Device Access",
@@ -248,20 +264,226 @@ JOURNAL_PROFILE_DOMAINS = {
 JOURNAL_VILLAGE_PAGE_SIZE = 10
 
 ANALYSIS_METRIC_LABELS = {
-    "R2 IID Desa": "R² IID Desa",
-    "R2 Dimensi": "R² Dimensi",
-    "Shapley R2 Dimensi": "Shapley R² Dimensi",
-    "Shapley R2 IID Desa": "Shapley R² IID Desa",
-    "Proporsi Shapley Dimensi": "Proporsi Shapley Dimensi",
-    "Proporsi Shapley IID Desa": "Proporsi Shapley IID Desa",
-    "Proporsi Shapley IID": "Proporsi Shapley IID",
-    "Rata-rata Kenaikan IID Desa (%)": "Kenaikan IID Desa (%)",
-    "Rata-rata Penurunan Deprivasi Digital (%)": "Penurunan Deprivasi Digital (%)",
+    "R2 IID Desa": "R-squared for Village Digital Inclusion Index",
+    "R2 Dimensi": "R-squared for Dimension Score",
+    "Shapley R2 Dimensi": "Shapley R-squared for Dimension Score",
+    "Shapley R2 IID Desa": "Shapley R-squared for Village Digital Inclusion Index",
+    "Proporsi Shapley Dimensi": "Shapley Share for Dimension Score",
+    "Proporsi Shapley IID Desa": "Shapley Share for Village Digital Inclusion Index",
+    "Proporsi Shapley IID": "Shapley Share for Digital Inclusion Index",
+    "Rata-rata Kenaikan IID Desa (%)": "Mean Increase in Village Digital Inclusion Index (%)",
+    "Rata-rata Penurunan Deprivasi Digital (%)": "Mean Reduction in Digital Deprivation (%)",
 }
+
+DISPLAY_COLUMN_LABELS = {
+    "metrik": "Metric",
+    "nilai": "Value",
+    "indikator": "Indicator",
+    "tipe_imputasi": "Imputation Type",
+    "nilai_imputasi": "Imputed Value",
+    "jumlah_diimputasi": "Imputed Records",
+    "nama_variabel": "Variable Name",
+    "level_output": "Output Level",
+    "label_konsep": "Concept Label",
+    "dimensi": "Dimension",
+    "simbol_dimensi": "Dimension Symbol",
+    "bobot_dimensi": "Dimension Weight",
+    "sumber_nilai": "Source Field",
+    "aturan_skoring": "Scoring Rule",
+    "catatan": "Note",
+    "tampil_pada_baris": "Displayed On",
+    "kode_deskel": "Village Code",
+    "deskel": "Village",
+    "label_desa": "Village",
+    "dusun": "Hamlet",
+    "rw": "Neighborhood Unit",
+    "lat": "Latitude",
+    "lng": "Longitude",
+    "long": "Longitude",
+    "lon": "Longitude",
+    "longitude": "Longitude",
+    "jumlah_kk": "Households",
+    "total_kk_desa": "Village Households",
+    "jumlah_rt": "Households",
+    "jumlah_warga": "Residents",
+    "total_warga": "Total Residents",
+    "persentase_kk": "Household Share",
+    "persentase_rt": "Household Share",
+    "persentase_warga": "Resident Share",
+    "persentase_desa": "Village Share",
+    "jumlah_desa": "Villages",
+    "total_desa": "Total Villages",
+    "kategori_iid_rt": "Household Digital Inclusion Category",
+    "interpretasi_gini": "Relative Gini Category",
+    "interpretasi_gini_cakupan": "Relative Gini Category",
+    "rentang_gini": "Gini Range",
+    "batas_bawah": "Lower Bound",
+    "batas_atas": "Upper Bound",
+    "iid_desa": "Village Digital Inclusion Index",
+    "ikd_desa": "Village Digital Deprivation Score",
+    "iid_rumah_tangga": "Household Digital Inclusion Index",
+    "ikd_rt": "Household Digital Deprivation Score",
+    "gini_iid_rumah_tangga": "Within-Village Gini",
+    "rata_rata_iid_rumah_tangga": "Mean Household Digital Inclusion Index",
+    "rata_rata_iid_cakupan": "Mean Index in Selected Scope",
+    "cakupan_analisis": "Analysis Scope",
+    "family_id": "Household ID",
+    "label_kk": "Household Label",
+    "nama_kk_subjek": "Household Head or Subject",
+    "nama_kontributor_utama": "Leading Contributor Name",
+    "family_id_kontributor_utama": "Leading Contributor Household ID",
+    "iid_kontributor_utama": "Leading Contributor Index",
+    "arah_kontributor_utama": "Leading Contributor Position",
+    "porsi_kontributor_utama": "Leading Contributor Share",
+    "jumlah_kontributor_non_nol": "Non-Zero Contributors",
+    "usia": "Age",
+    "suku": "Ethnic Group",
+    "subjek": "Subject",
+    "nama": "Name",
+    "jml_keluarga": "Household Members",
+    "jumlah_anggota_rumah_tangga": "Household Members",
+    "porsi_kontribusi_gini": "Gini Contribution Share",
+    "kontribusi_gini": "Gini Contribution",
+    "arah_deviasi": "Position Against Mean",
+    "deviasi_iid_cakupan": "Index Deviation from Scope Mean",
+    "peringkat_kontribusi": "Contribution Rank",
+    "ikd_tertil": "Digital Deprivation Tertile",
+    "kategori_tertil": "Relative Digital Deprivation Class",
+    "rentang_tertil": "Tertile Range",
+    "urutan_desa": "Village Order",
+    "kolom": "Column",
+    "tipe_data": "Data Type",
+    "terisi": "Filled Values",
+    "kosong": "Missing Values",
+    "persen_kosong": "Missing Share",
+    "unik": "Unique Values",
+    "contoh_nilai": "Sample Values",
+    "statistik": "Statistic",
+    "frekuensi": "Frequency",
+    "atribut": "Attribute",
+    "Dimensi": "Dimension",
+    "Variabel": "Indicator",
+    "Metrik": "Metric",
+    "Metrik Tampilan": "Displayed Metric",
+    "Persentase": "Percentage",
+    "dimensi_A": "Dimension A - Device Access",
+    "dimensi_B": "Dimension B - Internet Connectivity",
+    "dimensi_C": "Dimension C - Human Capacity",
+    "dimensi_D": "Dimension D - Digital Use",
+    "dimensi_E": "Dimension E - Social Enabling Environment",
+    "indikator_A": "Indicator A - Mobile Phone Ownership",
+    "indikator_B": "Indicator B - Mobile Phone Sufficiency",
+    "indikator_C": "Indicator C - Productive Digital Device Ownership",
+    "indikator_D": "Indicator D - Household Internet Access",
+    "indikator_E": "Indicator E - Household Head Educational Attainment",
+    "indikator_F": "Indicator F - School Participation Ratio",
+    "indikator_G": "Indicator G - Household Head Organizational Involvement",
+    "indikator_H": "Indicator H - Household Member Organizational Involvement",
+    "indikator_I": "Indicator I - Household Head Community Participation",
+    "indikator_J": "Indicator J - Household Member Community Participation",
+    "indikator_K": "Indicator K - Social Media Use",
+    "indikator_L": "Indicator L - Information Media Access",
+    "indikator_M": "Indicator M - Policy Information Participation",
+}
+
+EXACT_DISPLAY_VALUE_LABELS = {
+    "jumlah_baris_data_keluarga": "Household Data Rows",
+    "jumlah_baris_sumber": "Source Data Rows",
+    "jumlah_rumah_tangga_tercatat": "Recorded Households",
+    "jumlah_rumah_tangga_teridentifikasi": "Identified Households",
+    "jumlah_rumah_tangga_dengan_kepala": "Households with an Identified Head",
+    "jumlah_rumah_tangga_valid": "Valid Households",
+    "jumlah_rumah_tangga_dikeluarkan": "Excluded Households",
+    "jumlah_desa": "Villages",
+    "jumlah_kk_agregat": "Aggregate Households",
+    "rata_rata_iid_desa": "Mean Village Digital Inclusion Index",
+    "batas_usia_sekolah_min": "Minimum School-Age Threshold",
+    "batas_usia_sekolah_max": "Maximum School-Age Threshold",
+    "cakupan_usia_partisipasi_sekolah": "School Participation Age Coverage",
+    "indikator_hp_dimiliki": "Mobile Phone Ownership Indicator",
+    "indikator_kecukupan_hp": "Mobile Phone Sufficiency Indicator",
+    "indikator_perangkat_produktif": "Productive Digital Device Indicator",
+    "indikator_akses_internet": "Internet Access Indicator",
+    "indikator_pendidikan_kepala": "Household Head Education Indicator",
+    "indikator_organisasi_kepala": "Household Head Organization Indicator",
+    "indikator_organisasi_anggota": "Household Member Organization Indicator",
+    "indikator_partisipasi_masyarakat_kepala": "Household Head Community Participation Indicator",
+    "indikator_partisipasi_masyarakat_anggota": "Household Member Community Participation Indicator",
+    "indikator_medsos": "Social Media Indicator",
+    "indikator_media_informasi": "Information Media Indicator",
+    "indikator_partisipasi_kebijakan": "Policy Information Participation Indicator",
+    "modus": "Mode",
+    "keluarga": "Household",
+    "desa": "Village",
+    "keluarga, desa": "Household and Village",
+    "keseluruhan": "Overall Study Area",
+    "Semua desa": "All Villages",
+    "folder_hasil": "Prepared Output Folder",
+    "olah_ulang": "Reprocessed Source Data",
+    "Folder hasil siap pakai": "Prepared Output Folder",
+    "Olah dari file mentah": "Processed from Source Data",
+    "rekomendasi": "Recommended",
+    "baseline": "Baseline",
+    "Kepemilikan HP rumah tangga": "Household Mobile Phone Ownership",
+    "Kecukupan HP": "Mobile Phone Sufficiency",
+    "Kepemilikan perangkat digital produktif": "Productive Digital Device Ownership",
+    "Akses internet rumah tangga": "Household Internet Access",
+    "Pendidikan terakhir kepala keluarga": "Household Head Educational Attainment",
+    "Rasio partisipasi sekolah": "School Participation Ratio",
+    "Keterlibatan organisasi kepala keluarga": "Household Head Organizational Involvement",
+    "Keterlibatan organisasi anggota keluarga": "Household Member Organizational Involvement",
+    "Partisipasi kepala keluarga pada kegiatan masyarakat": "Household Head Community Participation",
+    "Partisipasi anggota keluarga pada kegiatan masyarakat": "Household Member Community Participation",
+    "Penggunaan media sosial": "Social Media Use",
+    "Akses media informasi": "Information Media Access",
+    "Partisipasi informasi/kebijakan": "Policy Information Participation",
+    "Indeks Inklusi Digital rumah tangga": "Household Digital Inclusion Index",
+    "Indeks Inklusi Digital desa": "Village Digital Inclusion Index",
+    "Indeks deprivasi/kesenjangan digital desa": "Village Digital Deprivation Score",
+    "Gini IID rumah tangga": "Within-Village Gini of Household Scores",
+    "Akses perangkat": "Device Access",
+    "Konektivitas internet": "Internet Connectivity",
+    "Kapasitas manusia": "Human Capacity",
+    "Penggunaan digital": "Digital Use",
+    "Lingkungan pendukung sosial": "Social Enabling Environment",
+    "gabungan seluruh dimensi": "Composite of All Dimensions",
+    "gabungan dimensi_A sampai dimensi_E": "Composite of Dimension A through Dimension E",
+    "kepala keluarga saja": "Household head row only",
+    "kepala keluarga saja dalam data_keluarga": "Household head row only in household data",
+    "anggota usia 7-25 tahun saja": "Members aged 7-25 only",
+    "Tidak punya ijazah": "No Diploma",
+    "kepala keluarga": "Household Head",
+}
+
+DISPLAY_TEXT_REPLACEMENTS = (
+    ("SD 7-12 tahun, SMP 13-15 tahun, SMA/SMK 16-18 tahun, Perguruan Tinggi 19-25 tahun", "Primary school 7-12 years, junior secondary 13-15 years, senior secondary or vocational 16-18 years, higher education 19-25 years"),
+    ("tidak memiliki", "does not have"),
+    ("memiliki minimal satu", "has at least one"),
+    ("tidak ada akses", "no access"),
+    ("akses publik/gratis/terbatas", "public, free, or limited access"),
+    ("paket data seluler/provider HP", "mobile data or cellular provider"),
+    ("Wi-Fi/langganan internet rumah tangga", "household Wi-Fi or internet subscription"),
+    ("tidak berpartisipasi", "does not participate"),
+    ("satu kegiatan/terbatas", "one or limited activity"),
+    ("lebih dari satu kegiatan/aktif", "more than one activity or active participation"),
+    ("tidak menggunakan", "does not use"),
+    ("penggunaan terbatas", "limited use"),
+    ("aktif menggunakan media sosial", "active social media use"),
+    ("tidak mengakses media informasi", "does not access information media"),
+    ("hanya media non-digital", "non-digital media only"),
+    ("mengakses media digital/online", "accesses digital or online media"),
+    ("tidak pernah terlibat", "never involved"),
+    ("pernah/terbatas/satu orang", "ever involved, limited involvement, or one person"),
+    ("aktif atau lebih dari satu orang", "active involvement or more than one person"),
+    ("rerata", "mean of"),
+    ("diabaikan dari penyebut jika NA", "excluded from the denominator when missing"),
+    ("jika tidak ada anggota pada rentang usia tersebut maka NA", "returns missing when no member falls in the age range"),
+    ("jumlah anggota usia 7-25 tahun yang sedang sekolah / jumlah anggota usia 7-25 tahun", "members aged 7-25 who are currently attending school divided by all members aged 7-25"),
+)
 
 
 st.set_page_config(
-    page_title="Dashboard Inklusi Digital",
+    page_title="Digital Inclusion Dashboard",
     page_icon="assets/logo-banner2.png" if (BASE_DIR / "assets" / "logo-banner2.png").exists() else None,
     layout="wide",
     initial_sidebar_state="expanded",
@@ -569,7 +791,7 @@ def format_number(value: Any, digits: int = 3) -> str:
     if value is None or pd.isna(value):
         return "-"
     if isinstance(value, int):
-        return f"{value:,}".replace(",", ".")
+        return f"{value:,}"
     if isinstance(value, float):
         return f"{value:.{digits}f}"
     return str(value)
@@ -584,15 +806,81 @@ def format_percent(value: Any, digits: int = 2) -> str:
 def format_currency(value: Any, digits: int = 0) -> str:
     if value is None or pd.isna(value):
         return "-"
-    return f"Rp {float(value):,.{digits}f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"IDR {float(value):,.{digits}f}"
 
 
 def format_analysis_metric_label(metric_name: str) -> str:
-    return ANALYSIS_METRIC_LABELS.get(metric_name, metric_name.replace("R2", "R²"))
+    return ANALYSIS_METRIC_LABELS.get(metric_name, metric_name.replace("R2", "R-squared"))
 
 
 def with_analysis_metric_display_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return df.rename(columns={column: format_analysis_metric_label(column) for column in df.columns})
+    display_df = df.rename(columns={column: format_analysis_metric_label(column) for column in df.columns})
+    return prepare_display_dataframe(display_df)
+
+
+def format_iid_category_label(value: Any) -> Any:
+    if value is None or pd.isna(value):
+        return value
+    text = str(value).strip()
+    return IID_CATEGORY_LABELS.get(text, text)
+
+
+def format_gini_label(value: Any) -> Any:
+    if value is None or pd.isna(value):
+        return value
+    text = str(value).strip()
+    return GINI_LABELS.get(text, text)
+
+
+def format_inequality_direction_label(value: Any) -> Any:
+    if value is None or pd.isna(value):
+        return value
+    text = str(value).strip()
+    return INEQUALITY_DIRECTION_LABELS.get(text, text)
+
+
+def translate_display_text(value: Any, column_name: str | None = None) -> Any:
+    if value is None or pd.isna(value):
+        return value
+    if not isinstance(value, str):
+        return value
+
+    text = value.strip()
+    if column_name in {"kategori_iid_rt", "Digital Inclusion Category"}:
+        return format_iid_category_label(text)
+    if column_name in {"interpretasi_gini", "interpretasi_gini_cakupan"}:
+        return format_gini_label(text)
+    if column_name in {"arah_deviasi", "arah_kontributor_utama"}:
+        return format_inequality_direction_label(text)
+    if text in EXACT_DISPLAY_VALUE_LABELS:
+        return EXACT_DISPLAY_VALUE_LABELS[text]
+    if text in DISPLAY_COLUMN_LABELS:
+        return DISPLAY_COLUMN_LABELS[text]
+    if text in DIMENSION_LABELS:
+        return DIMENSION_LABELS[text]
+    if text in JOURNAL_INDICATOR_LABELS:
+        return JOURNAL_INDICATOR_LABELS[text]
+    if text in ANALYSIS_METRIC_LABELS:
+        return ANALYSIS_METRIC_LABELS[text]
+
+    translated_text = text
+    for source_text, replacement_text in DISPLAY_TEXT_REPLACEMENTS:
+        translated_text = translated_text.replace(source_text, replacement_text)
+    return translated_text
+
+
+def prepare_display_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    display_df = df.copy()
+    for column in display_df.columns:
+        if (
+            column in DISPLAY_COLUMN_LABELS
+            or column in {"kategori_iid_rt", "interpretasi_gini", "interpretasi_gini_cakupan", "arah_deviasi", "arah_kontributor_utama"}
+            or pd.api.types.is_object_dtype(display_df[column])
+            or pd.api.types.is_string_dtype(display_df[column])
+            or isinstance(display_df[column].dtype, pd.CategoricalDtype)
+        ):
+            display_df[column] = display_df[column].map(lambda value, col=column: translate_display_text(value, col))
+    return display_df.rename(columns={column: DISPLAY_COLUMN_LABELS.get(column, column) for column in display_df.columns})
 
 
 def build_file_signature(path: Path) -> str:
@@ -720,7 +1008,7 @@ def load_output_bundle_cached(output_dir_str: str, folder_signature: str) -> dic
     del folder_signature
     output_dir = Path(output_dir_str)
     if not output_dir.exists():
-        raise FileNotFoundError(f"Folder output tidak ditemukan: {output_dir}")
+        raise FileNotFoundError(f"Output folder was not found: {output_dir}")
 
     tables: dict[str, pd.DataFrame] = {}
     missing_required: list[str] = []
@@ -733,11 +1021,11 @@ def load_output_bundle_cached(output_dir_str: str, folder_signature: str) -> dic
         elif parquet_path.exists():
             tables[key] = pd.read_parquet(parquet_path)
         elif spec["required"]:
-            missing_required.append(f"{spec['filename']} atau {parquet_path.name}")
+            missing_required.append(f"{spec['filename']} or {parquet_path.name}")
 
     if missing_required:
         joined = ", ".join(missing_required)
-        raise FileNotFoundError(f"File inti tidak lengkap di folder output: {joined}")
+        raise FileNotFoundError(f"Required output files are incomplete in the selected folder: {joined}")
 
     if "ringkasan_pengolahan" not in tables:
         tables["ringkasan_pengolahan"] = derive_processing_summary(tables)
@@ -764,7 +1052,7 @@ def load_output_bundle(output_dir: Path) -> dict[str, Any]:
     signature = build_folder_signature(output_dir)
     bundle = load_output_bundle_cached(str(output_dir), signature)
     bundle["meta"]["source_mode"] = "folder_hasil"
-    bundle["meta"]["source_label"] = "Folder hasil siap pakai"
+    bundle["meta"]["source_label"] = "Prepared Output Folder"
     return bundle
 
 
@@ -780,7 +1068,7 @@ def process_input_bundle_cached(
     del input_signature
     input_path = Path(input_path_str)
     if not input_path.exists():
-        raise FileNotFoundError(f"File input tidak ditemukan: {input_path}")
+        raise FileNotFoundError(f"Input file was not found: {input_path}")
 
     output_hash = hashlib.md5(
         f"{input_path.resolve()}|{build_file_signature(input_path)}|{scheme}|{school_age_min}|{school_age_max}|{missing_threshold}".encode(
@@ -810,7 +1098,7 @@ def process_input_bundle_cached(
 
     bundle = load_output_bundle_cached(str(output_dir), build_folder_signature(output_dir))
     bundle["meta"]["source_mode"] = "olah_ulang"
-    bundle["meta"]["source_label"] = "Olah dari file mentah"
+    bundle["meta"]["source_label"] = "Processed from Source Data"
     bundle["meta"]["scheme"] = scheme
     bundle["meta"]["input_path"] = str(input_path.resolve())
     bundle["meta"]["school_age_min"] = school_age_min
@@ -1087,11 +1375,11 @@ def add_top_rank_highlight(
         highlighted_df["_rank_number"] = highlighted_df[value_column].rank(method="first", ascending=False)
     highlighted_df[highlight_column] = highlighted_df["_rank_number"].map(
         {
-            1.0: "Peringkat 1",
-            2.0: "Peringkat 2",
-            3.0: "Peringkat 3",
+            1.0: "Rank 1",
+            2.0: "Rank 2",
+            3.0: "Rank 3",
         }
-    ).fillna("Lainnya")
+    ).fillna("Other Values")
     return highlighted_df
 
 
@@ -1122,7 +1410,7 @@ def build_ranked_red_bar_figure(
         xaxis_title=xaxis_title,
         yaxis_title=yaxis_title,
         margin=dict(l=10, r=10, t=60, b=10),
-        legend_title_text="Peringkat nilai",
+        legend_title_text="Value Rank",
     )
     fig.update_traces(marker_line_color="#7f1d1d", marker_line_width=0.8)
     if orientation == "v":
@@ -1194,6 +1482,9 @@ def build_top_inequality_contributors_figure(
     else:
         plot_df["label_rt"] = plot_df["family_id"].astype("string")
     plot_df = plot_df.sort_values("porsi_kontribusi_gini", ascending=True, kind="mergesort")
+    plot_df["score_position_label"] = plot_df["arah_deviasi"].map(format_inequality_direction_label)
+    if "kategori_iid_rt" in plot_df.columns:
+        plot_df["iid_category_label"] = plot_df["kategori_iid_rt"].map(format_iid_category_label)
 
     hover_data: dict[str, Any] = {
         "family_id": True,
@@ -1203,11 +1494,12 @@ def build_top_inequality_contributors_figure(
         "kontribusi_gini": ":.4f",
         "porsi_kontribusi_gini": ":.2%",
         "label_rt": False,
+        "score_position_label": True,
     }
     if "nama_kk_subjek" in plot_df.columns:
         hover_data["nama_kk_subjek"] = True
     if "kategori_iid_rt" in plot_df.columns:
-        hover_data["kategori_iid_rt"] = True
+        hover_data["iid_category_label"] = True
     if "usia" in plot_df.columns:
         hover_data["usia"] = True
     if "suku" in plot_df.columns:
@@ -1218,30 +1510,30 @@ def build_top_inequality_contributors_figure(
         x="porsi_kontribusi_gini",
         y="label_rt",
         orientation="h",
-        color="arah_deviasi",
+        color="score_position_label",
         color_discrete_map=INEQUALITY_DIRECTION_COLORS,
         text=plot_df["porsi_kontribusi_gini"].map(lambda value: f"{float(value) * 100:.2f}%"),
         hover_data=hover_data,
         labels={
-            "label_rt": "Rumah tangga",
-            "family_id": "ID rumah tangga",
-            "deskel": "Desa/kelurahan",
-            "iid_rumah_tangga": "Skor IID-RT",
-            "rata_rata_iid_cakupan": "Rata-rata IID cakupan",
-            "kontribusi_gini": "Nilai kontribusi Gini",
-            "porsi_kontribusi_gini": "Porsi kontribusi Gini",
-            "arah_deviasi": "Posisi skor",
-            "kategori_iid_rt": "Kategori IID-RT",
-            "nama_kk_subjek": "Nama KK",
-            "usia": "Usia",
-            "suku": "Suku",
+            "label_rt": "Household",
+            "family_id": "Household ID",
+            "deskel": "Village",
+            "iid_rumah_tangga": "Household Digital Inclusion Index",
+            "rata_rata_iid_cakupan": "Mean Index in Selected Scope",
+            "kontribusi_gini": "Gini Contribution",
+            "porsi_kontribusi_gini": "Gini Contribution Share",
+            "score_position_label": "Score Position",
+            "iid_category_label": "Household Digital Inclusion Category",
+            "nama_kk_subjek": "Household Head or Subject",
+            "usia": "Age",
+            "suku": "Ethnic Group",
         },
     )
     fig.update_layout(
         title=title,
-        xaxis_title="Porsi kontribusi terhadap total ketimpangan Gini",
-        yaxis_title="Rumah tangga",
-        legend_title_text="Posisi skor",
+        xaxis_title="Share of Total Gini Inequality",
+        yaxis_title="Household",
+        legend_title_text="Score Position",
         margin=dict(l=20, r=20, t=55, b=20),
     )
     fig.update_xaxes(tickformat=".2%", hoverformat=".2%")
@@ -1284,34 +1576,38 @@ def build_contributor_profile_preview_df(contributor_df: pd.DataFrame) -> pd.Dat
     preview_df = contributor_df[preview_columns].copy()
     if "porsi_kontribusi_gini" in preview_df.columns:
         preview_df["porsi_kontribusi_gini"] = preview_df["porsi_kontribusi_gini"].map(format_percent)
+    if "kategori_iid_rt" in preview_df.columns:
+        preview_df["kategori_iid_rt"] = preview_df["kategori_iid_rt"].map(format_iid_category_label)
+    if "arah_deviasi" in preview_df.columns:
+        preview_df["arah_deviasi"] = preview_df["arah_deviasi"].map(format_inequality_direction_label)
     return preview_df.rename(
         columns={
-            "nama_kk_subjek": "Nama KK/Subjek",
-            "usia": "Usia",
-            "suku": "Suku",
-            "kategori_iid_rt": "Kategori IID-RT",
-            "iid_rumah_tangga": "Skor IID-RT",
-            "porsi_kontribusi_gini": "Porsi kontribusi Gini",
-            "arah_deviasi": "Posisi terhadap rata-rata",
-            "jml_keluarga": "Jumlah anggota keluarga",
-            "dimensi_A": "Dimensi A",
-            "dimensi_B": "Dimensi B",
-            "dimensi_C": "Dimensi C",
-            "dimensi_D": "Dimensi D",
-            "dimensi_E": "Dimensi E",
-            "indikator_A": "Indikator A",
-            "indikator_B": "Indikator B",
-            "indikator_C": "Indikator C",
-            "indikator_D": "Indikator D",
-            "indikator_E": "Indikator E",
-            "indikator_F": "Indikator F",
-            "indikator_G": "Indikator G",
-            "indikator_H": "Indikator H",
-            "indikator_I": "Indikator I",
-            "indikator_J": "Indikator J",
-            "indikator_K": "Indikator K",
-            "indikator_L": "Indikator L",
-            "indikator_M": "Indikator M",
+            "nama_kk_subjek": "Household Head or Subject",
+            "usia": "Age",
+            "suku": "Ethnic Group",
+            "kategori_iid_rt": "Household Digital Inclusion Category",
+            "iid_rumah_tangga": "Household Digital Inclusion Index",
+            "porsi_kontribusi_gini": "Gini Contribution Share",
+            "arah_deviasi": "Position Against Mean",
+            "jml_keluarga": "Household Members",
+            "dimensi_A": "Dimension A - Device Access",
+            "dimensi_B": "Dimension B - Internet Connectivity",
+            "dimensi_C": "Dimension C - Human Capacity",
+            "dimensi_D": "Dimension D - Digital Use",
+            "dimensi_E": "Dimension E - Social Enabling Environment",
+            "indikator_A": "Indicator A - Mobile Phone Ownership",
+            "indikator_B": "Indicator B - Mobile Phone Sufficiency",
+            "indikator_C": "Indicator C - Productive Digital Device Ownership",
+            "indikator_D": "Indicator D - Household Internet Access",
+            "indikator_E": "Indicator E - Household Head Educational Attainment",
+            "indikator_F": "Indicator F - School Participation Ratio",
+            "indikator_G": "Indicator G - Household Head Organizational Involvement",
+            "indikator_H": "Indicator H - Household Member Organizational Involvement",
+            "indikator_I": "Indicator I - Household Head Community Participation",
+            "indikator_J": "Indicator J - Household Member Community Participation",
+            "indikator_K": "Indicator K - Social Media Use",
+            "indikator_L": "Indicator L - Information Media Access",
+            "indikator_M": "Indicator M - Policy Information Participation",
         }
     )
 
@@ -2509,11 +2805,11 @@ def build_journal_deprivation_priority_table(village_df: pd.DataFrame) -> tuple[
 
 def render_hero(meta: dict[str, Any]) -> None:
     badges = [
-        f"Sumber: {meta.get('source_label', '-')}",
-        f"Folder output: {Path(meta.get('output_dir', '-')).name}",
+        f"Source: {meta.get('source_label', '-')}",
+        f"Output Folder: {Path(meta.get('output_dir', '-')).name}",
     ]
     if meta.get("scheme"):
-        badges.append(f"Skema: {meta['scheme']}")
+        badges.append(f"Scheme: {translate_display_text(meta['scheme'])}")
     if meta.get("input_path"):
         badges.append(f"Input: {Path(meta['input_path']).name}")
 
@@ -2521,12 +2817,11 @@ def render_hero(meta: dict[str, Any]) -> None:
     st.markdown(
         f"""
         <div class="hero-shell">
-            <div class="hero-kicker">Dashboard Streamlit</div>
-            <h1 class="hero-title">Visualisasi Inklusi Digital Rumah Tangga dan Desa</h1>
+            <div class="hero-kicker">Research Dashboard</div>
+            <h1 class="hero-title">Household and Village Digital Inclusion Analysis</h1>
             <div class="hero-subtitle">
-                Dashboard ini menampilkan ringkasan hasil olah data dari pipeline <code>id.py</code>,
-                lengkap dengan grafik, profil skor, penjelasan variabel, dan deskripsi tabel
-                agar data lebih mudah dibaca langsung dari browser.
+                This dashboard presents the processed outputs from the <code>id.py</code> pipeline through
+                publication-oriented charts, score profiles, variable documentation, and table summaries.
             </div>
             <div class="hero-badges">{badge_html}</div>
         </div>
@@ -2557,23 +2852,24 @@ def render_top_summary_metrics(tables: dict[str, pd.DataFrame]) -> None:
         inequality_summary_df["cakupan_analisis"].astype("string").eq("keseluruhan")
     ].head(1)
     overall_gini = overall_row["gini_iid_rumah_tangga"].iloc[0] if not overall_row.empty else None
-    overall_category = overall_row["interpretasi_gini"].iloc[0] if not overall_row.empty else "-"
+    overall_category = format_gini_label(overall_row["interpretasi_gini"].iloc[0]) if not overall_row.empty else "-"
 
     metric_cols = st.columns(5)
-    metric_cols[0].metric("RT valid", format_number(total_valid, 0))
-    metric_cols[1].metric("RT dikeluarkan", format_number(total_excluded, 0))
-    metric_cols[2].metric("Jumlah desa", format_number(total_desa, 0))
-    metric_cols[3].metric("Rata-rata IID desa", format_number(avg_iid))
-    metric_cols[4].metric("Gini keseluruhan", format_number(overall_gini))
+    metric_cols[0].metric("Valid Households", format_number(total_valid, 0))
+    metric_cols[1].metric("Excluded Households", format_number(total_excluded, 0))
+    metric_cols[2].metric("Villages", format_number(total_desa, 0))
+    metric_cols[3].metric("Mean Village Index", format_number(avg_iid))
+    metric_cols[4].metric("Overall Gini", format_number(overall_gini))
 
     extra_cols = st.columns(3)
-    extra_cols[0].metric("Jumlah warga", format_number(total_warga, 0))
+    extra_cols[0].metric("Residents", format_number(total_warga, 0))
     if not household_df.empty and "kategori_iid_rt" in household_df.columns:
         top_category = household_df["kategori_iid_rt"].astype("string").value_counts(dropna=True)
-        extra_cols[1].metric("Kategori RT dominan", top_category.index[0] if not top_category.empty else "-")
+        dominant_category = format_iid_category_label(top_category.index[0]) if not top_category.empty else "-"
+        extra_cols[1].metric("Dominant Household Category", dominant_category)
     else:
-        extra_cols[1].metric("Kategori RT dominan", "-")
-    extra_cols[2].metric("Kategori relatif Gini", str(overall_category) if pd.notna(overall_category) else "-")
+        extra_cols[1].metric("Dominant Household Category", "-")
+    extra_cols[2].metric("Relative Gini Category", str(overall_category) if pd.notna(overall_category) else "-")
 
 
 def build_household_resource_summary(detail_df: pd.DataFrame) -> dict[str, float]:
@@ -2598,18 +2894,21 @@ def build_category_count_figure(household_df: pd.DataFrame) -> go.Figure:
         .reset_index()
     )
     category_counts.columns = ["kategori_iid_rt", "jumlah_rt"]
+    category_counts["Digital Inclusion Category"] = category_counts["kategori_iid_rt"].map(format_iid_category_label)
     fig = px.bar(
         category_counts,
-        x="kategori_iid_rt",
+        x="Digital Inclusion Category",
         y="jumlah_rt",
-        color="kategori_iid_rt",
-        color_discrete_map=CATEGORY_COLORS,
+        color="Digital Inclusion Category",
+        color_discrete_map=IID_CATEGORY_COLORS,
+        category_orders={"Digital Inclusion Category": IID_CATEGORY_ORDER_EN},
         text_auto=True,
+        labels={"jumlah_rt": "Households"},
     )
     fig.update_layout(
-        title="Distribusi rumah tangga valid menurut kategori IID-RT",
-        xaxis_title="Kategori IID-RT",
-        yaxis_title="Jumlah rumah tangga",
+        title="Valid Households by Digital Inclusion Category",
+        xaxis_title="Digital Inclusion Category",
+        yaxis_title="Number of Households",
         showlegend=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
@@ -2624,9 +2923,9 @@ def build_household_histogram_figure(household_df: pd.DataFrame) -> go.Figure:
         color_discrete_sequence=["#0f766e"],
     )
     fig.update_layout(
-        title="Sebaran skor IID rumah tangga",
-        xaxis_title="Skor IID rumah tangga",
-        yaxis_title="Jumlah rumah tangga",
+        title="Distribution of Household Digital Inclusion Scores",
+        xaxis_title="Household Digital Inclusion Index",
+        yaxis_title="Number of Households",
         margin=dict(l=20, r=20, t=55, b=20),
     )
     return fig
@@ -2636,8 +2935,8 @@ def build_household_average_figure(detail_df: pd.DataFrame) -> go.Figure:
     summary = build_household_resource_summary(detail_df)
     plot_df = pd.DataFrame(
         [
-            {"metrik": "Rata-rata jumlah HP", "nilai": summary["avg_hp"], "warna": "#0f766e"},
-            {"metrik": "Rata-rata anggota keluarga", "nilai": summary["avg_members"], "warna": "#163249"},
+            {"metrik": "Mean Mobile Phones", "nilai": summary["avg_hp"], "warna": "#0f766e"},
+            {"metrik": "Mean Household Members", "nilai": summary["avg_members"], "warna": "#163249"},
         ]
     )
     fig = px.bar(
@@ -2649,9 +2948,9 @@ def build_household_average_figure(detail_df: pd.DataFrame) -> go.Figure:
         text_auto=".2f",
     )
     fig.update_layout(
-        title="Perbandingan rata-rata HP dan anggota keluarga",
-        xaxis_title="Metrik",
-        yaxis_title="Rata-rata",
+        title="Mean Mobile Phones and Household Members",
+        xaxis_title="Metric",
+        yaxis_title="Mean Value",
         showlegend=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
@@ -2669,9 +2968,9 @@ def build_comm_cost_distribution_figure(detail_df: pd.DataFrame) -> go.Figure:
         color_discrete_sequence=["#ea580c"],
     )
     fig.update_layout(
-        title="Sebaran biaya komunikasi rumah tangga",
-        xaxis_title="Biaya komunikasi tertinggi per rumah tangga (Rp)",
-        yaxis_title="Jumlah rumah tangga",
+        title="Distribution of Household Communication Expenditure",
+        xaxis_title="Highest Household Communication Expenditure (IDR)",
+        yaxis_title="Number of Households",
         margin=dict(l=20, r=20, t=55, b=20),
     )
     fig.update_xaxes(tickformat=",.0f")
@@ -2680,9 +2979,9 @@ def build_comm_cost_distribution_figure(detail_df: pd.DataFrame) -> go.Figure:
 
 def build_household_resource_by_desa_figure(detail_df: pd.DataFrame, metric: str, top_n: int = 12) -> go.Figure:
     label_map = {
-        "hp_jumlah_num": ("Rata-rata jumlah HP per desa", "Rata-rata jumlah HP", "#0f766e"),
-        "jml_keluarga": ("Rata-rata anggota keluarga per desa", "Rata-rata anggota keluarga", "#163249"),
-        "rp_komunikasi_tertinggi": ("Rata-rata biaya komunikasi per desa", "Rata-rata biaya komunikasi (Rp)", "#ea580c"),
+        "hp_jumlah_num": ("Mean Mobile Phones by Village", "Mean Mobile Phones", "#0f766e"),
+        "jml_keluarga": ("Mean Household Members by Village", "Mean Household Members", "#163249"),
+        "rp_komunikasi_tertinggi": ("Mean Communication Expenditure by Village", "Mean Communication Expenditure (IDR)", "#ea580c"),
     }
     title, xaxis_title, color = label_map[metric]
     plot_df = detail_df[["deskel", metric]].copy()
@@ -2701,7 +3000,7 @@ def build_household_resource_by_desa_figure(detail_df: pd.DataFrame, metric: str
     fig.update_layout(
         title=title,
         xaxis_title=xaxis_title,
-        yaxis_title="Desa/kelurahan",
+        yaxis_title="Village",
         showlegend=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
@@ -2719,26 +3018,31 @@ def build_person_distribution_figure(warga_df: pd.DataFrame) -> go.Figure:
         .reindex(VISIBLE_CATEGORY_ORDER, fill_value=0)
         .reset_index()
     )
+    distribution["Digital Inclusion Category"] = distribution["kategori_iid_rt"].map(format_iid_category_label)
     fig = px.pie(
         distribution,
         values="jumlah_warga",
-        names="kategori_iid_rt",
-        color="kategori_iid_rt",
-        color_discrete_map=CATEGORY_COLORS,
+        names="Digital Inclusion Category",
+        color="Digital Inclusion Category",
+        color_discrete_map=IID_CATEGORY_COLORS,
         hole=0.45,
     )
-    fig.update_layout(title="Komposisi warga menurut kategori IID-RT", margin=dict(l=10, r=10, t=55, b=10))
+    fig.update_layout(
+        title="Resident Composition by Household Digital Inclusion Category",
+        legend_title_text="Digital Inclusion Category",
+        margin=dict(l=10, r=10, t=55, b=10),
+    )
     return fig
 
 
 def build_top_bottom_desa_figure(desa_df: pd.DataFrame, mode: str) -> go.Figure:
     if mode == "top":
         chart_df = desa_df.nlargest(10, "iid_desa").sort_values("iid_desa")
-        title = "10 desa dengan IID tertinggi"
+        title = "Ten Villages with the Highest Digital Inclusion Index"
         color = "#0f766e"
     else:
         chart_df = desa_df.nsmallest(10, "iid_desa").sort_values("iid_desa")
-        title = "10 desa dengan IID terendah"
+        title = "Ten Villages with the Lowest Digital Inclusion Index"
         color = "#b91c1c"
 
     fig = px.bar(
@@ -2751,8 +3055,8 @@ def build_top_bottom_desa_figure(desa_df: pd.DataFrame, mode: str) -> go.Figure:
     )
     fig.update_layout(
         title=title,
-        xaxis_title="Skor IID desa",
-        yaxis_title="Desa/kelurahan",
+        xaxis_title="Village Digital Inclusion Index",
+        yaxis_title="Village",
         margin=dict(l=20, r=20, t=55, b=20),
         showlegend=False,
     )
@@ -2763,20 +3067,20 @@ def build_dimension_profile_figure(desa_df: pd.DataFrame) -> go.Figure:
     rows: list[dict[str, Any]] = []
     for column, label in DIMENSION_LABELS.items():
         if column in desa_df.columns:
-            rows.append({"dimensi": label, "skor": pd.to_numeric(desa_df[column], errors="coerce").mean()})
+            rows.append({"Dimension": label, "Mean Score": pd.to_numeric(desa_df[column], errors="coerce").mean()})
     profile_df = pd.DataFrame(rows)
     fig = px.bar(
         profile_df,
-        x="dimensi",
-        y="skor",
-        color="skor",
+        x="Dimension",
+        y="Mean Score",
+        color="Mean Score",
         color_continuous_scale=["#d8f3eb", "#0f766e", "#163249"],
         text_auto=".3f",
     )
     fig.update_layout(
-        title="Profil rata-rata dimensi pada tingkat desa",
-        xaxis_title="Dimensi",
-        yaxis_title="Skor rata-rata",
+        title="Mean Village-Level Dimension Scores",
+        xaxis_title="Dimension",
+        yaxis_title="Mean Score",
         coloraxis_showscale=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
@@ -2785,20 +3089,28 @@ def build_dimension_profile_figure(desa_df: pd.DataFrame) -> go.Figure:
 
 
 def build_gini_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
+    plot_df = desa_df.copy()
+    plot_df["Relative Gini Category"] = plot_df["interpretasi_gini"].map(format_gini_label)
     fig = px.scatter(
-        desa_df,
+        plot_df,
         x="iid_desa",
         y="gini_iid_rumah_tangga",
         size="jumlah_kk",
         hover_name="deskel",
-        color="interpretasi_gini",
+        color="Relative Gini Category",
         color_discrete_map=GINI_COLORS,
+        labels={
+            "iid_desa": "Village Digital Inclusion Index",
+            "gini_iid_rumah_tangga": "Within-Village Gini",
+            "jumlah_kk": "Households",
+            "deskel": "Village",
+        },
     )
     fig.update_layout(
-        title="Relasi IID desa dan Gini rumah tangga dengan kategori relatif tertil",
-        xaxis_title="IID desa",
-        yaxis_title="Gini IID rumah tangga",
-        legend_title_text="Kategori relatif",
+        title="Village Digital Inclusion and Within-Village Gini by Relative Tertile",
+        xaxis_title="Village Digital Inclusion Index",
+        yaxis_title="Within-Village Gini of Household Scores",
+        legend_title_text="Relative Gini Category",
         margin=dict(l=20, r=20, t=55, b=20),
     )
     return fig
@@ -2827,25 +3139,25 @@ def build_ikd_tertile_distribution_figure(desa_df: pd.DataFrame) -> go.Figure:
         .astype("string")
         .value_counts(dropna=False)
         .reindex(IKD_RELATIVE_ORDER, fill_value=0)
-        .rename_axis("kategori_tertil")
-        .reset_index(name="jumlah_desa")
+        .rename_axis("Relative Digital Deprivation Class")
+        .reset_index(name="Villages")
     )
-    plot_df["rentang_tertil"] = plot_df["kategori_tertil"].map(IKD_RELATIVE_RANGE_LABELS)
-    plot_df["persentase_desa"] = plot_df["jumlah_desa"] / max(int(plot_df["jumlah_desa"].sum()), 1)
+    plot_df["Tertile Range"] = plot_df["Relative Digital Deprivation Class"].map(IKD_RELATIVE_RANGE_LABELS)
+    plot_df["Village Share"] = plot_df["Villages"] / max(int(plot_df["Villages"].sum()), 1)
     fig = px.bar(
         plot_df,
-        x="kategori_tertil",
-        y="jumlah_desa",
-        color="kategori_tertil",
+        x="Relative Digital Deprivation Class",
+        y="Villages",
+        color="Relative Digital Deprivation Class",
         color_discrete_map=IKD_RELATIVE_COLORS,
-        category_orders={"kategori_tertil": IKD_RELATIVE_ORDER},
+        category_orders={"Relative Digital Deprivation Class": IKD_RELATIVE_ORDER},
         text_auto=True,
-        hover_data={"rentang_tertil": True, "persentase_desa": ":.2%"},
+        hover_data={"Tertile Range": True, "Village Share": ":.2%"},
     )
     fig.update_layout(
-        title="Sebaran desa berdasarkan tertil relatif deprivasi digital",
-        xaxis_title="Kelas relatif deprivasi digital",
-        yaxis_title="Jumlah desa",
+        title="Villages by Relative Digital Deprivation Tertile",
+        xaxis_title="Relative Digital Deprivation Class",
+        yaxis_title="Number of Villages",
         showlegend=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
@@ -2854,23 +3166,30 @@ def build_ikd_tertile_distribution_figure(desa_df: pd.DataFrame) -> go.Figure:
 
 def build_ikd_tertile_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
     plot_df = desa_df.sort_values("ikd_desa").reset_index(drop=True).copy()
-    plot_df["urutan_desa"] = plot_df.index + 1
+    plot_df["Village Order"] = plot_df.index + 1
     fig = px.scatter(
         plot_df,
-        x="urutan_desa",
+        x="Village Order",
         y="ikd_desa",
         color="kategori_tertil",
         color_discrete_map=IKD_RELATIVE_COLORS,
         category_orders={"kategori_tertil": IKD_RELATIVE_ORDER},
         hover_name="deskel",
-        hover_data={"ikd_tertil": True, "kategori_tertil": True, "jumlah_kk": True, "urutan_desa": False},
+        hover_data={"ikd_tertil": True, "kategori_tertil": True, "jumlah_kk": True, "Village Order": False},
+        labels={
+            "ikd_desa": "Village Digital Deprivation Score",
+            "ikd_tertil": "Digital Deprivation Tertile",
+            "kategori_tertil": "Relative Digital Deprivation Class",
+            "jumlah_kk": "Households",
+            "deskel": "Village",
+        },
     )
     fig.update_traces(marker=dict(size=9, opacity=0.82))
     fig.update_layout(
-        title="Sebaran nilai deprivasi digital desa menurut tertil relatif",
-        xaxis_title="Urutan desa setelah diurutkan dari deprivasi digital terendah",
-        yaxis_title="Skor deprivasi digital desa",
-        legend_title_text="Kelas relatif deprivasi digital",
+        title="Village Digital Deprivation Scores by Relative Tertile",
+        xaxis_title="Village Order after Sorting from Lowest Digital Deprivation",
+        yaxis_title="Village Digital Deprivation Score",
+        legend_title_text="Relative Digital Deprivation Class",
         margin=dict(l=20, r=20, t=55, b=20),
     )
     return fig
@@ -2927,6 +3246,7 @@ def prepare_desa_distribution_matrix(
 
 def build_desa_distribution_heatmap(pivot_df: pd.DataFrame) -> go.Figure:
     heatmap_df = (pivot_df * 100).round(2)
+    heatmap_df = heatmap_df.rename(columns={category: format_iid_category_label(category) for category in heatmap_df.columns})
     max_value = float(heatmap_df.max().max()) if not heatmap_df.empty else 0.0
     fig = go.Figure(
         data=go.Heatmap(
@@ -2936,14 +3256,14 @@ def build_desa_distribution_heatmap(pivot_df: pd.DataFrame) -> go.Figure:
             colorscale=RED_HEATMAP_SCALE,
             zmin=0,
             zmax=max(max_value, 1.0),
-            colorbar=dict(title="% RT"),
-            hovertemplate="Desa: %{y}<br>Kategori: %{x}<br>Persentase: %{z:.2f}%<extra></extra>",
+            colorbar=dict(title="% Households"),
+            hovertemplate="Village: %{y}<br>Category: %{x}<br>Share: %{z:.2f}%<extra></extra>",
         )
     )
     fig.update_layout(
-        title="Heatmap persebaran kategori IID-RT seluruh desa",
-        xaxis_title="Kategori IID-RT",
-        yaxis_title="Desa/kelurahan",
+        title="Heatmap of Household Digital Inclusion Categories across Villages",
+        xaxis_title="Household Digital Inclusion Category",
+        yaxis_title="Village",
         margin=dict(l=20, r=20, t=55, b=20),
         height=max(460, 34 * max(len(heatmap_df.index), 1) + 120),
     )
@@ -2966,19 +3286,22 @@ def build_desa_distribution_focus_figure(distribution_df: pd.DataFrame, selected
         .reset_index()
     )
     focus_df["persentase_rt"] = focus_df["persentase_kk"] * 100
+    focus_df["Digital Inclusion Category"] = focus_df["kategori_iid_rt"].map(format_iid_category_label)
     fig = px.bar(
         focus_df,
-        x="kategori_iid_rt",
+        x="Digital Inclusion Category",
         y="persentase_rt",
-        color="kategori_iid_rt",
-        color_discrete_map=CATEGORY_COLORS,
+        color="Digital Inclusion Category",
+        color_discrete_map=IID_CATEGORY_COLORS,
+        category_orders={"Digital Inclusion Category": IID_CATEGORY_ORDER_EN},
         text_auto=".2f",
         hover_data={"jumlah_kk": ":,.0f", "persentase_rt": ":.2f"},
+        labels={"jumlah_kk": "Households", "persentase_rt": "Household Share"},
     )
     fig.update_layout(
-        title=f"Komposisi kategori IID-RT di {selected_label}",
-        xaxis_title="Kategori IID-RT",
-        yaxis_title="Persentase rumah tangga",
+        title=f"Household Digital Inclusion Category Composition in {selected_label}",
+        xaxis_title="Household Digital Inclusion Category",
+        yaxis_title="Share of Households",
         margin=dict(l=20, r=20, t=55, b=20),
         showlegend=False,
     )
@@ -3000,22 +3323,25 @@ def build_map_figure(household_df: pd.DataFrame) -> go.Figure | None:
 
     sample_size = min(2500, len(map_df))
     map_df = map_df.sample(sample_size, random_state=42) if len(map_df) > sample_size else map_df
+    if "kategori_iid_rt" in map_df.columns:
+        map_df["Digital Inclusion Category"] = map_df["kategori_iid_rt"].map(format_iid_category_label)
     fig = px.scatter_mapbox(
         map_df,
         lat=lat_col,
         lon=lon_col,
-        color="kategori_iid_rt" if "kategori_iid_rt" in map_df.columns else None,
-        color_discrete_map=CATEGORY_COLORS,
+        color="Digital Inclusion Category" if "Digital Inclusion Category" in map_df.columns else None,
+        color_discrete_map=IID_CATEGORY_COLORS,
         hover_name="deskel" if "deskel" in map_df.columns else None,
         hover_data={"iid_rumah_tangga": ":.3f"},
+        labels={"iid_rumah_tangga": "Household Digital Inclusion Index", "deskel": "Village"},
         zoom=8,
         height=520,
     )
     fig.update_layout(
         mapbox_style="open-street-map",
-        title="Sebaran lokasi rumah tangga valid",
+        title="Spatial Distribution of Valid Households",
         margin=dict(l=10, r=10, t=55, b=10),
-        legend_title_text="Kategori",
+        legend_title_text="Digital Inclusion Category",
     )
     return fig
 
@@ -3026,12 +3352,12 @@ def build_table_overview(df: pd.DataFrame) -> pd.DataFrame:
     numeric_count = int(len(df.select_dtypes(include="number").columns))
     text_count = int(len(df.columns) - numeric_count)
     overview_rows = [
-        {"metrik": "Jumlah baris", "nilai": int(df.shape[0])},
-        {"metrik": "Jumlah kolom", "nilai": int(df.shape[1])},
-        {"metrik": "Kolom numerik", "nilai": numeric_count},
-        {"metrik": "Kolom non numerik", "nilai": text_count},
-        {"metrik": "Sel kosong", "nilai": missing_cells},
-        {"metrik": "Persentase sel kosong", "nilai": format_percent(missing_cells / total_cells if total_cells else 0)},
+        {"Metric": "Rows", "Value": int(df.shape[0])},
+        {"Metric": "Columns", "Value": int(df.shape[1])},
+        {"Metric": "Numeric Columns", "Value": numeric_count},
+        {"Metric": "Non-Numeric Columns", "Value": text_count},
+        {"Metric": "Missing Cells", "Value": missing_cells},
+        {"Metric": "Missing Cell Share", "Value": format_percent(missing_cells / total_cells if total_cells else 0)},
     ]
     return pd.DataFrame(overview_rows)
 
@@ -3044,13 +3370,13 @@ def build_column_profile(df: pd.DataFrame) -> pd.DataFrame:
         preview_values = [str(value) for value in series.dropna().astype(str).head(3).tolist()]
         rows.append(
             {
-                "kolom": column,
-                "tipe_data": str(series.dtype),
-                "terisi": int(series.notna().sum()),
-                "kosong": int(series.isna().sum()),
-                "persen_kosong": format_percent(series.isna().sum() / total_rows),
-                "unik": int(series.nunique(dropna=True)),
-                "contoh_nilai": ", ".join(preview_values) if preview_values else "-",
+                "Column": DISPLAY_COLUMN_LABELS.get(column, column),
+                "Data Type": str(series.dtype),
+                "Filled Values": int(series.notna().sum()),
+                "Missing Values": int(series.isna().sum()),
+                "Missing Share": format_percent(series.isna().sum() / total_rows),
+                "Unique Values": int(series.nunique(dropna=True)),
+                "Sample Values": ", ".join(preview_values) if preview_values else "-",
             }
         )
     return pd.DataFrame(rows)
@@ -3059,18 +3385,19 @@ def build_column_profile(df: pd.DataFrame) -> pd.DataFrame:
 def render_column_detail(df: pd.DataFrame, column_name: str) -> None:
     series = df[column_name]
     detail_cols = st.columns(4)
-    detail_cols[0].metric("Tipe data", str(series.dtype))
-    detail_cols[1].metric("Nilai terisi", format_number(int(series.notna().sum()), 0))
-    detail_cols[2].metric("Nilai unik", format_number(int(series.nunique(dropna=True)), 0))
-    detail_cols[3].metric("Nilai kosong", format_number(int(series.isna().sum()), 0))
+    detail_cols[0].metric("Data Type", str(series.dtype))
+    detail_cols[1].metric("Filled Values", format_number(int(series.notna().sum()), 0))
+    detail_cols[2].metric("Unique Values", format_number(int(series.nunique(dropna=True)), 0))
+    detail_cols[3].metric("Missing Values", format_number(int(series.isna().sum()), 0))
 
     if pd.api.types.is_numeric_dtype(series):
-        stats_df = series.describe(percentiles=[0.25, 0.5, 0.75]).rename("nilai").reset_index()
-        stats_df.columns = ["statistik", "nilai"]
+        stats_df = series.describe(percentiles=[0.25, 0.5, 0.75]).rename("Value").reset_index()
+        stats_df.columns = ["Statistic", "Value"]
         st.dataframe(stats_df, use_container_width=True, hide_index=True)
     else:
         top_values = series.fillna("NA").astype(str).value_counts().head(10).reset_index()
-        top_values.columns = ["nilai", "frekuensi"]
+        top_values.columns = ["Value", "Frequency"]
+        top_values["Value"] = top_values["Value"].map(lambda value: translate_display_text(value, column_name))
         st.dataframe(top_values, use_container_width=True, hide_index=True)
 
 
@@ -3117,36 +3444,36 @@ def render_sidebar() -> None:
     st.sidebar.markdown(
         """
         <div class="sidebar-brand">
-            <div class="sidebar-kicker">Dashboard penelitian</div>
-            <div class="sidebar-title">Inklusi Digital & Ketimpangan</div>
+            <div class="sidebar-kicker">Research Dashboard</div>
+            <div class="sidebar-title">Digital Inclusion and Inequality</div>
             <div class="sidebar-subtitle">
-                Muat hasil olah indeks atau jalankan ulang pipeline dari data mentah.
+                Load processed index outputs or re-run the pipeline from source data.
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.sidebar.markdown('<div class="sidebar-section-label">Sumber data</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="sidebar-section-label">Data Source</div>', unsafe_allow_html=True)
     with st.sidebar.form("dashboard_loader_form"):
         source_mode = st.radio(
-            "Pilih cara memuat data",
-            options=("Folder hasil siap pakai", "Olah dari file mentah"),
+            "Select data-loading mode",
+            options=("Prepared Output Folder", "Process Source Data"),
             index=0 if st.session_state.dashboard_request.get("mode") == "folder_hasil" else 1,
             label_visibility="collapsed",
         )
 
-        if source_mode == "Folder hasil siap pakai":
+        if source_mode == "Prepared Output Folder":
             st.markdown(
-                '<div class="sidebar-help">Gunakan mode ini kalau file CSV hasil olah sudah tersedia. Ini pilihan paling cepat untuk membuka dashboard.</div>',
+                '<div class="sidebar-help">Use this mode when processed CSV outputs are already available. It is the fastest way to open the dashboard.</div>',
                 unsafe_allow_html=True,
             )
             output_dir = st.text_input(
-                "Folder hasil olah",
+                "Processed Output Folder",
                 value=st.session_state.dashboard_request.get("output_dir", str(default_output_dir)),
-                help="Folder yang berisi file hasil seperti indeks_desa.csv dan data_keluarga.csv.",
+                help="Folder containing output files such as indeks_desa.csv and data_keluarga.csv.",
             )
-            submit = st.form_submit_button("Tampilkan dashboard")
+            submit = st.form_submit_button("Display Dashboard")
             if submit:
                 st.session_state.dashboard_request = {
                     "mode": "folder_hasil",
@@ -3154,21 +3481,26 @@ def render_sidebar() -> None:
                 }
         else:
             st.markdown(
-                '<div class="sidebar-help">Unggah data mentah jika ingin menghitung ulang indeks. Opsi teknis disimpan di bagian lanjutan agar sidebar tetap ringkas.</div>',
+                '<div class="sidebar-help">Upload source data to recalculate the index. Technical options are kept in the advanced section to keep the sidebar concise.</div>',
                 unsafe_allow_html=True,
             )
-            uploaded_file = st.file_uploader("Unggah file CSV/XLSX/Parquet", type=["csv", "xlsx", "xls", "parquet"])
+            uploaded_file = st.file_uploader("Upload CSV/XLSX/Parquet File", type=["csv", "xlsx", "xls", "parquet"])
             input_path = st.text_input(
-                "Path file lokal",
+                "Local File Path",
                 value=str(detect_default_input_path() or BASE_DIR / "data_asli.parquet"),
-                help="Dipakai bila tidak ada file yang diunggah.",
+                help="Used when no file is uploaded.",
             )
-            scheme = st.selectbox("Skema perhitungan", options=["rekomendasi", "baseline"], index=0)
-            with st.expander("Opsi perhitungan", expanded=False):
-                school_age_min = st.number_input("Usia sekolah minimum", min_value=0, max_value=100, value=7, step=1)
-                school_age_max = st.number_input("Usia sekolah maksimum", min_value=0, max_value=100, value=25, step=1)
-                missing_threshold = st.slider("Ambang indikator inti hilang", min_value=0.0, max_value=1.0, value=0.20, step=0.01)
-            submit = st.form_submit_button("Proses dan tampilkan")
+            scheme = st.selectbox(
+                "Calculation Scheme",
+                options=["rekomendasi", "baseline"],
+                index=0,
+                format_func=lambda value: str(translate_display_text(value)),
+            )
+            with st.expander("Calculation Options", expanded=False):
+                school_age_min = st.number_input("Minimum School Age", min_value=0, max_value=100, value=7, step=1)
+                school_age_max = st.number_input("Maximum School Age", min_value=0, max_value=100, value=25, step=1)
+                missing_threshold = st.slider("Core Indicator Missingness Threshold", min_value=0.0, max_value=1.0, value=0.20, step=0.01)
+            submit = st.form_submit_button("Process and Display")
             if submit:
                 source_path = save_uploaded_file(uploaded_file) if uploaded_file is not None else Path(input_path)
                 st.session_state.dashboard_request = {
@@ -3183,14 +3515,14 @@ def render_sidebar() -> None:
     active_request = st.session_state.dashboard_request
     if active_request["mode"] == "folder_hasil":
         active_detail = Path(active_request["output_dir"]).name or str(active_request["output_dir"])
-        active_label = "Folder hasil"
+        active_label = "Prepared Output Folder"
     else:
         active_detail = Path(active_request["input_path"]).name
-        active_label = f"Olah ulang - {active_request.get('scheme', 'rekomendasi')}"
+        active_label = f"Reprocessed Source Data - {translate_display_text(active_request.get('scheme', 'rekomendasi'))}"
     st.sidebar.markdown(
         f"""
         <div class="sidebar-status">
-            <b>Mode aktif</b><br>
+            <b>Active Mode</b><br>
             {active_label}<br>
             <span>{active_detail}</span>
         </div>
@@ -3217,15 +3549,15 @@ def resolve_bundle_from_request() -> dict[str, Any]:
 
 def render_household_resource_section(detail_df: pd.DataFrame, section_key: str) -> None:
     if detail_df.empty:
-        st.info("Statistik jumlah HP, anggota keluarga, dan biaya komunikasi belum bisa dihitung karena file sumber mentah tidak tersedia.")
+        st.info("Mobile phone, household-size, and communication-expenditure statistics cannot be computed because the source data are not available.")
         return
 
     summary = build_household_resource_summary(detail_df)
     metric_cols = st.columns(4)
-    metric_cols[0].metric("Rata-rata jumlah HP", format_number(summary["avg_hp"], 2))
-    metric_cols[1].metric("Rata-rata anggota keluarga", format_number(summary["avg_members"], 2))
-    metric_cols[2].metric("Rata-rata biaya komunikasi", format_currency(summary["avg_comm"], 0))
-    metric_cols[3].metric("Median biaya komunikasi", format_currency(summary["median_comm"], 0))
+    metric_cols[0].metric("Mean Mobile Phones", format_number(summary["avg_hp"], 2))
+    metric_cols[1].metric("Mean Household Members", format_number(summary["avg_members"], 2))
+    metric_cols[2].metric("Mean Communication Expenditure", format_currency(summary["avg_comm"], 0))
+    metric_cols[3].metric("Median Communication Expenditure", format_currency(summary["median_comm"], 0))
 
     chart_cols = st.columns(2)
     chart_cols[0].plotly_chart(
@@ -3276,28 +3608,28 @@ def render_overall_inequality_section(tables: dict[str, pd.DataFrame]) -> None:
     if not top_row.empty:
         top_label = f"{top_row['family_id'].iloc[0]} ({format_percent(top_row['porsi_kontribusi_gini'].iloc[0])})"
 
-    st.markdown("### Ketimpangan keseluruhan")
+    st.markdown("### Overall Inequality")
     st.caption(
-        "Kontribusi dihitung dari total selisih skor IID-RT terhadap rumah tangga lain. Nilai kontribusi yang besar berarti rumah tangga itu berada cukup jauh dari pola umum, sehingga lebih kuat membentuk ketimpangan. Label kategori Gini mengikuti tertil relatif antar desa dalam sampel penelitian."
+        "Each contribution is calculated from the total difference between a household digital inclusion score and the scores of other households. A larger contribution indicates that the household is farther from the overall pattern and therefore contributes more strongly to inequality. Relative Gini categories are based on tertiles across sampled villages."
     )
 
     metric_cols = st.columns(4)
-    metric_cols[0].metric("Gini keseluruhan", format_number(overall_summary["gini_iid_rumah_tangga"].iloc[0]))
-    metric_cols[1].metric("Kategori relatif", str(overall_summary["interpretasi_gini"].iloc[0]))
-    metric_cols[2].metric("RT terlibat", format_number(overall_summary["jumlah_kk"].iloc[0], 0))
-    metric_cols[3].metric("Kontributor utama", top_label)
+    metric_cols[0].metric("Overall Gini", format_number(overall_summary["gini_iid_rumah_tangga"].iloc[0]))
+    metric_cols[1].metric("Relative Category", str(format_gini_label(overall_summary["interpretasi_gini"].iloc[0])))
+    metric_cols[2].metric("Households Included", format_number(overall_summary["jumlah_kk"].iloc[0], 0))
+    metric_cols[3].metric("Leading Contributor", top_label)
 
     chart_cols = st.columns([1.15, 0.85])
     chart_cols[0].plotly_chart(
         build_top_inequality_contributors_figure(
             overall_contributors,
-            title="Rumah tangga dengan kontribusi ketimpangan terbesar secara keseluruhan",
+            title="Households with the Largest Overall Contributions to Inequality",
         ),
         use_container_width=True,
         key="overall_inequality_contributors",
     )
     chart_cols[0].caption(
-        "Angka persen pada bar menunjukkan bagian kontribusi KK terhadap total ketimpangan Gini, bukan nilai Gini milik KK tersebut."
+        "The percentage shown on each bar is the household share of total Gini inequality, not a household-specific Gini value."
     )
     with chart_cols[1]:
         preview_columns = [
@@ -3316,13 +3648,13 @@ def render_overall_inequality_section(tables: dict[str, pd.DataFrame]) -> None:
             preview_df["porsi_kontribusi_gini"] = preview_df["porsi_kontribusi_gini"].map(
                 lambda value: format_percent(value)
             )
-        st.dataframe(preview_df, use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(preview_df), use_container_width=True, hide_index=True)
 
 
 def render_summary_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
-    st.markdown("<span class='pill-note'>Ringkasan utama</span>", unsafe_allow_html=True)
+    st.markdown("<span class='pill-note'>Executive Summary</span>", unsafe_allow_html=True)
     st.markdown(
-        "<div class='section-note'>Lihat gambaran umum skor indeks, distribusi rumah tangga, dan catatan hasil pengolahan.</div>",
+        "<div class='section-note'>Review the core index scores, household distribution, and processing notes in a concise research-oriented format.</div>",
         unsafe_allow_html=True,
     )
     render_top_summary_metrics(tables)
@@ -3353,22 +3685,22 @@ def render_summary_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame)
             key="summary_person_distribution",
         )
         with ringkas_col:
-            st.markdown("### Ringkasan pengolahan")
+            st.markdown("### Processing Summary")
             summary_df = tables.get("ringkasan_pengolahan", pd.DataFrame())
             if summary_df.empty:
-                st.info("Ringkasan pengolahan belum tersedia untuk sumber data ini.")
+                st.info("The processing summary is not available for this data source.")
             else:
-                st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                st.dataframe(prepare_display_dataframe(summary_df), use_container_width=True, hide_index=True)
     elif not desa_df.empty:
-        st.markdown("### Ringkasan pengolahan")
+        st.markdown("### Processing Summary")
         summary_df = tables.get("ringkasan_pengolahan", pd.DataFrame())
         if summary_df.empty:
-            st.info("Ringkasan pengolahan belum tersedia untuk sumber data ini.")
+            st.info("The processing summary is not available for this data source.")
         else:
-            st.dataframe(summary_df, use_container_width=True, hide_index=True)
+            st.dataframe(prepare_display_dataframe(summary_df), use_container_width=True, hide_index=True)
 
-    st.markdown("### Profil HP, anggota keluarga, dan biaya komunikasi")
-    st.caption("Statistik ini dihitung pada tingkat rumah tangga valid.")
+    st.markdown("### Household Resources and Communication Expenditure")
+    st.caption("These statistics are computed at the valid-household level.")
     render_household_resource_section(detail_df, section_key="summary_resource")
 
 
@@ -3377,31 +3709,37 @@ def render_household_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFram
     household_df = get_household_rows(keluarga_df)
 
     if household_df.empty:
-        st.warning("Tidak ada data rumah tangga valid yang bisa divisualisasikan.")
+        st.warning("No valid household records are available for visualization.")
         return
 
     filter_cols = st.columns(2)
-    desa_options = ["Semua desa"] + sorted(household_df["deskel"].dropna().astype(str).unique().tolist()) if "deskel" in household_df.columns else ["Semua desa"]
-    selected_desa = filter_cols[0].selectbox("Filter desa", options=desa_options)
-    kategori_options = ["Semua kategori"] + [
+    all_villages_label = "All Villages"
+    all_categories_label = "All Categories"
+    desa_options = [all_villages_label] + sorted(household_df["deskel"].dropna().astype(str).unique().tolist()) if "deskel" in household_df.columns else [all_villages_label]
+    selected_desa = filter_cols[0].selectbox("Village Filter", options=desa_options)
+    kategori_options = [all_categories_label] + [
         category for category in VISIBLE_CATEGORY_ORDER if category in household_df["kategori_iid_rt"].astype("string").unique().tolist()
     ]
-    selected_category = filter_cols[1].selectbox("Filter kategori IID-RT", options=kategori_options)
+    selected_category = filter_cols[1].selectbox(
+        "Household Digital Inclusion Category Filter",
+        options=kategori_options,
+        format_func=lambda value: all_categories_label if value == all_categories_label else str(format_iid_category_label(value)),
+    )
 
     filtered_df = household_df.copy()
-    if selected_desa != "Semua desa" and "deskel" in filtered_df.columns:
+    if selected_desa != all_villages_label and "deskel" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["deskel"].astype(str) == selected_desa]
-    if selected_category != "Semua kategori":
+    if selected_category != all_categories_label:
         filtered_df = filtered_df[filtered_df["kategori_iid_rt"].astype(str) == selected_category]
 
-    st.caption(f"Menampilkan {len(filtered_df):,} rumah tangga valid.".replace(",", "."))
+    st.caption(f"Displaying {len(filtered_df):,} valid households.")
 
     filtered_detail_df = pd.DataFrame()
     if not detail_df.empty:
         filtered_detail_df = detail_df.copy()
-        if selected_desa != "Semua desa" and "deskel" in filtered_detail_df.columns:
+        if selected_desa != all_villages_label and "deskel" in filtered_detail_df.columns:
             filtered_detail_df = filtered_detail_df[filtered_detail_df["deskel"].astype(str) == selected_desa]
-        if selected_category != "Semua kategori" and "kategori_iid_rt" in filtered_detail_df.columns:
+        if selected_category != all_categories_label and "kategori_iid_rt" in filtered_detail_df.columns:
             filtered_detail_df = filtered_detail_df[filtered_detail_df["kategori_iid_rt"].astype(str) == selected_category]
 
     chart_cols = st.columns(2)
@@ -3416,7 +3754,7 @@ def render_household_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFram
         key="household_histogram",
     )
 
-    st.markdown("### Statistik struktur rumah tangga")
+    st.markdown("### Household Structure Statistics")
     render_household_resource_section(filtered_detail_df, section_key="household_resource")
 
     map_figure = build_map_figure(filtered_df)
@@ -3424,8 +3762,8 @@ def render_household_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFram
         st.plotly_chart(map_figure, use_container_width=True, key="household_map")
 
     preview_columns = [column for column in ("family_id", "deskel", "iid_rumah_tangga", "kategori_iid_rt", "dimensi_A", "dimensi_B", "dimensi_C", "dimensi_D", "dimensi_E") if column in filtered_df.columns]
-    st.markdown("### Preview data rumah tangga valid")
-    st.dataframe(filtered_df[preview_columns].head(200), use_container_width=True, hide_index=True)
+    st.markdown("### Valid Household Data Preview")
+    st.dataframe(prepare_display_dataframe(filtered_df[preview_columns].head(200)), use_container_width=True, hide_index=True)
 
 
 def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
@@ -3436,7 +3774,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     gini_distribution_df = normalize_gini_distribution_table(tables.get("sebaran_gini_desa", pd.DataFrame()), desa_df)
     inequality_summary_df, inequality_contributor_df = resolve_inequality_tables(tables)
     if desa_df.empty:
-        st.warning("Tabel indeks desa belum tersedia.")
+        st.warning("The village index table is not available.")
         return
 
     numeric_columns = ["iid_desa", "gini_iid_rumah_tangga", "jumlah_kk"]
@@ -3472,9 +3810,9 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     )
 
     if not gini_distribution_df.empty:
-        st.markdown("### Kategori relatif Gini antar desa")
+        st.markdown("### Relative Gini Categories across Villages")
         st.caption(
-            "Karena seluruh nilai Gini desa berada pada rentang rendah secara absolut, pembeda posisi ketimpangan antar desa dibuat dengan tertil relatif: sepertiga terendah, sepertiga tengah, dan sepertiga tertinggi dalam sampel."
+            "Because all village Gini values fall within a low absolute range, relative inequality positions are distinguished with tertiles: the lowest third, middle third, and highest third within the study sample."
         )
         preview_columns = [
             column
@@ -3484,21 +3822,21 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         gini_preview_df = gini_distribution_df[preview_columns].copy()
         if "persentase_desa" in gini_preview_df.columns:
             gini_preview_df["persentase_desa"] = gini_preview_df["persentase_desa"].map(format_percent)
-        st.dataframe(gini_preview_df, use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(gini_preview_df), use_container_width=True, hide_index=True)
 
     if not distribution_df.empty:
-        st.markdown("### Persebaran kategori IID-RT seluruh desa")
+        st.markdown("### Household Digital Inclusion Categories across Villages")
         st.caption(
-            "Heatmap ini menampilkan komposisi persentase kategori IID-RT untuk setiap desa, sehingga persebaran seluruh desa bisa dibaca sekaligus tanpa dibatasi desa terbesar."
+            "The heatmap presents the percentage composition of household digital inclusion categories in each village, allowing the full village distribution to be read without limiting the view to the largest villages."
         )
         sort_option_map = {
-            "Urut alfabet desa": "alphabetical",
-            "Urut IID desa tertinggi": "iid_desc",
-            "Urut jumlah KK terbesar": "kk_desc",
+            "Alphabetical by Village": "alphabetical",
+            "Highest Village Index First": "iid_desc",
+            "Largest Household Count First": "kk_desc",
         }
         control_cols = st.columns(2)
         selected_sort_label = control_cols[0].selectbox(
-            "Urutkan desa pada heatmap",
+            "Village Ordering for Heatmap",
             options=list(sort_option_map.keys()),
             key="desa_distribution_sort_mode",
         )
@@ -3509,7 +3847,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         )
         if not pivot_df.empty:
             selected_desa_distribution = control_cols[1].selectbox(
-                "Pilih desa untuk melihat detail komposisi",
+                "Select a Village for Category Composition",
                 options=distribution_meta_df["label_desa"].tolist(),
                 key="desa_distribution_focus_selector",
             )
@@ -3525,12 +3863,12 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
             if not selected_meta.empty:
                 if "total_kk_desa" in selected_meta.columns:
                     detail_metric_cols[0].metric(
-                        "Jumlah KK desa",
+                        "Village Households",
                         format_number(selected_meta["total_kk_desa"].iloc[0], 0),
                     )
                 if "iid_desa" in selected_meta.columns:
                     detail_metric_cols[1].metric(
-                        "IID desa",
+                        "Village Digital Inclusion Index",
                         format_number(selected_meta["iid_desa"].iloc[0]),
                     )
             st.plotly_chart(
@@ -3544,9 +3882,9 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     ].copy()
     desa_inequality_df = desa_inequality_df.dropna(subset=["deskel"], how="all")
     if not desa_inequality_df.empty:
-        st.markdown("### Evaluasi ketimpangan per desa")
+        st.markdown("### Village-Level Inequality Assessment")
         st.caption(
-            "Bagian ini menunjukkan kategori relatif ketimpangan setiap desa dan rumah tangga mana yang paling kuat mendorong ketimpangan di desa tersebut."
+            "This section reports the relative inequality category for each village and identifies the households that contribute most strongly to within-village inequality."
         )
 
         selector_df = desa_inequality_df[["kode_deskel", "deskel"]].drop_duplicates().copy()
@@ -3559,7 +3897,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
             axis=1,
         )
         selected_label = st.selectbox(
-            "Pilih desa untuk membaca kontributor ketimpangan",
+            "Select a Village to Review Inequality Contributors",
             options=selector_df["label_desa"].tolist(),
             key="desa_inequality_selector",
         )
@@ -3625,21 +3963,23 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
                 how="left",
             )
 
-        selected_category_inequality = "Semua kategori"
+        all_categories_label = "All Categories"
+        selected_category_inequality = all_categories_label
         if "kategori_iid_rt" in selected_contributors.columns:
-            category_options = ["Semua kategori"] + [
+            category_options = [all_categories_label] + [
                 category
                 for category in VISIBLE_CATEGORY_ORDER
                 if category in selected_contributors["kategori_iid_rt"].astype("string").unique().tolist()
             ]
             selected_category_inequality = st.selectbox(
-                "Filter kategori IID-RT untuk membaca profil KK",
+                "Household Digital Inclusion Category Filter for Contributor Profiles",
                 options=category_options,
+                format_func=lambda value: all_categories_label if value == all_categories_label else str(format_iid_category_label(value)),
                 key="desa_inequality_category_selector",
             )
 
         filtered_contributors = selected_contributors.copy()
-        if selected_category_inequality != "Semua kategori" and "kategori_iid_rt" in filtered_contributors.columns:
+        if selected_category_inequality != all_categories_label and "kategori_iid_rt" in filtered_contributors.columns:
             filtered_contributors = filtered_contributors.loc[
                 filtered_contributors["kategori_iid_rt"].astype("string").eq(selected_category_inequality)
             ].copy()
@@ -3663,35 +4003,35 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
                 )
 
             metric_cols = st.columns(4)
-            metric_cols[0].metric("Gini desa", format_number(selected_summary["gini_iid_rumah_tangga"].iloc[0]))
-            metric_cols[1].metric("Kategori relatif", str(selected_summary["interpretasi_gini"].iloc[0]))
-            metric_cols[2].metric("Jumlah KK", format_number(selected_summary["jumlah_kk"].iloc[0], 0))
+            metric_cols[0].metric("Village Gini", format_number(selected_summary["gini_iid_rumah_tangga"].iloc[0]))
+            metric_cols[1].metric("Relative Category", str(format_gini_label(selected_summary["interpretasi_gini"].iloc[0])))
+            metric_cols[2].metric("Households", format_number(selected_summary["jumlah_kk"].iloc[0], 0))
             metric_cols[3].metric(
-                "Kontributor utama kategori" if selected_category_inequality != "Semua kategori" else "Kontributor utama",
+                "Leading Contributor in Category" if selected_category_inequality != all_categories_label else "Leading Contributor",
                 top_contributor_label,
             )
 
             if filtered_contributors.empty:
-                st.info(f"Tidak ada KK pada kategori `{selected_category_inequality}` untuk desa ini.")
+                st.info(f"No households in the `{format_iid_category_label(selected_category_inequality)}` category are available for this village.")
             else:
                 title_suffix = (
-                    f" kategori {selected_category_inequality}"
-                    if selected_category_inequality != "Semua kategori"
+                    f" in the {format_iid_category_label(selected_category_inequality)} Category"
+                    if selected_category_inequality != all_categories_label
                     else ""
                 )
                 st.plotly_chart(
                     build_top_inequality_contributors_figure(
                         filtered_contributors,
-                        title=f"Kontributor ketimpangan terbesar{title_suffix} di {selected_info['deskel']}",
+                        title=f"Largest Inequality Contributors{title_suffix} in {selected_info['deskel']}",
                     ),
                     use_container_width=True,
                     key="desa_selected_inequality_contributors",
                 )
                 st.caption(
-                    "Angka persen pada bar menunjukkan bagian kontribusi KK terhadap total ketimpangan Gini di cakupan yang dipilih, bukan nilai Gini milik KK tersebut."
+                    "The percentage shown on each bar is the household share of total Gini inequality within the selected scope, not a household-specific Gini value."
                 )
                 st.caption(
-                    "Profil di bawah hanya menampilkan satu baris per kepala keluarga/KK, dengan identitas dasar dari data asli dan skor dimensi-indikator dari hasil olah indeks."
+                    "The profile below shows one row per household head, combining basic source-data identifiers with processed dimension and indicator scores."
                 )
                 profile_preview_df = build_contributor_profile_preview_df(
                     filtered_contributors.sort_values(
@@ -3722,12 +4062,12 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         ).copy()
         if "porsi_kontributor_utama" in ranking_df.columns:
             ranking_df["porsi_kontributor_utama"] = ranking_df["porsi_kontributor_utama"].map(format_percent)
-        st.dataframe(ranking_df, use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(ranking_df), use_container_width=True, hide_index=True)
 
     if {"ikd_desa", "ikd_tertil", "kategori_tertil"}.issubset(desa_df.columns):
-        st.markdown("### Sebaran desa berdasarkan tertil relatif deprivasi digital")
+        st.markdown("### Villages by Relative Digital Deprivation Tertile")
         st.caption(
-            "Kolom `ikd_desa` dibaca sebagai indeks deprivasi/kesenjangan digital desa, yaitu komplemen `1 - iid_desa`, bukan Indeks Kesejahteraan Desa. Tertil relatif dihitung dari sebaran `ikd_desa`: semakin tinggi nilainya, semakin tinggi deprivasi digital relatif desa tersebut di dalam sampel."
+            "The `ikd_desa` column is interpreted as the village digital deprivation score, calculated as the complement of `1 - iid_desa`. It is not the Village Welfare Index. Relative tertiles are computed from the `ikd_desa` distribution; higher values indicate higher relative digital deprivation within the sample."
         )
         tertile_cols = st.columns(2)
         tertile_cols[0].plotly_chart(
@@ -3747,13 +4087,13 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
             if column in desa_df.columns
         ]
         st.dataframe(
-            desa_df[tertile_preview_columns].sort_values("ikd_desa", ascending=True),
+            prepare_display_dataframe(desa_df[tertile_preview_columns].sort_values("ikd_desa", ascending=True)),
             use_container_width=True,
             hide_index=True,
         )
 
-    st.markdown("### Preview indeks desa")
-    st.dataframe(desa_df.head(100), use_container_width=True, hide_index=True)
+    st.markdown("### Village Index Preview")
+    st.dataframe(prepare_display_dataframe(desa_df.head(100)), use_container_width=True, hide_index=True)
 
 
 def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
@@ -4155,8 +4495,8 @@ def build_dimension_determinant_figure(determinant_df: pd.DataFrame) -> go.Figur
         determinant_df,
         value_column="R2 IID Desa",
         label_column="Dimensi",
-        title="Koefisien determinasi dimensi terhadap IID Desa",
-        xaxis_title="Dimensi",
+        title="Dimension-Level Determination of the Village Digital Inclusion Index",
+        xaxis_title="Dimension",
         yaxis_title=format_analysis_metric_label("R2 IID Desa"),
         text_auto=".3f",
     )
@@ -4184,6 +4524,7 @@ def build_oat_sensitivity_figure(oat_df: pd.DataFrame) -> go.Figure:
         if column in plot_df["Metrik"].astype("string").unique().tolist()
     ]
     plot_df = add_top_rank_highlight(plot_df, "Persentase", group_column="Metrik Tampilan")
+    plot_df["Dimensi"] = plot_df["Dimensi"].map(lambda value: translate_display_text(value, "Dimensi"))
     plot_df["Metrik Tampilan"] = pd.Categorical(plot_df["Metrik Tampilan"], categories=metric_order, ordered=True)
     plot_df = plot_df.sort_values(["Metrik Tampilan", "Persentase"], ascending=[True, False], kind="mergesort")
     fig = px.bar(
@@ -4198,11 +4539,11 @@ def build_oat_sensitivity_figure(oat_df: pd.DataFrame) -> go.Figure:
         facet_col_spacing=0.12,
     )
     fig.update_layout(
-        title="Perubahan outcome pada simulasi OAT",
-        yaxis_title="Perubahan (%)",
-        xaxis_title="Dimensi",
+        title="Outcome Changes in the One-at-a-Time Sensitivity Simulation",
+        yaxis_title="Change (%)",
+        xaxis_title="Dimension",
         margin=dict(l=10, r=10, t=70, b=10),
-        legend_title_text="Peringkat nilai",
+        legend_title_text="Value Rank",
     )
     fig.update_traces(marker_line_color="#7f1d1d", marker_line_width=0.8)
     fig.update_xaxes(tickangle=-20)
@@ -4212,13 +4553,15 @@ def build_oat_sensitivity_figure(oat_df: pd.DataFrame) -> go.Figure:
 
 def build_variable_determinant_figure(variable_df: pd.DataFrame, metric_column: str) -> go.Figure:
     metric_label = format_analysis_metric_label(metric_column)
+    display_df = variable_df.copy()
+    display_df["Variabel"] = display_df["Variabel"].map(lambda value: translate_display_text(value, "Variabel"))
     return build_ranked_red_bar_figure(
-        variable_df,
+        display_df,
         value_column=metric_column,
         label_column="Variabel",
-        title=f"Koefisien determinasi indikator menurut {metric_label}",
+        title=f"Indicator-Level Determination by {metric_label}",
         xaxis_title=metric_label,
-        yaxis_title="Variabel",
+        yaxis_title="Indicator",
         text_auto=".3f",
         orientation="h",
     )
@@ -4226,13 +4569,15 @@ def build_variable_determinant_figure(variable_df: pd.DataFrame, metric_column: 
 
 def build_shapley_figure(shapley_df: pd.DataFrame, value_column: str) -> go.Figure:
     value_label = format_analysis_metric_label(value_column)
+    display_df = shapley_df.copy()
+    display_df["Variabel"] = display_df["Variabel"].map(lambda value: translate_display_text(value, "Variabel"))
     return build_ranked_red_bar_figure(
-        shapley_df,
+        display_df,
         value_column=value_column,
         label_column="Variabel",
-        title=f"Kontribusi Shapley indikator menurut {value_label}",
+        title=f"Indicator Shapley Contribution by {value_label}",
         xaxis_title=value_label,
-        yaxis_title="Variabel",
+        yaxis_title="Indicator",
         text_auto=".3f",
         orientation="h",
     )
@@ -4248,24 +4593,24 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
     download_tables = collect_advanced_analysis_tables_for_download(tables)
 
     if dimension_df.empty and variable_df.empty and oat_df.empty and shapley_df.empty:
-        st.info("Tabel analisis lanjutan belum tersedia.")
+        st.info("Advanced analysis tables are not available.")
         return
 
-    st.markdown("<span class='pill-note'>Analisis lanjutan</span>", unsafe_allow_html=True)
+    st.markdown("<span class='pill-note'>Advanced Analysis</span>", unsafe_allow_html=True)
     st.markdown(
-        "<div class='section-note'>Bagian ini menempatkan IID Desa sebagai outcome utama. Nilai `ikd_desa` dibaca sebagai indeks deprivasi/kesenjangan digital, yaitu komplemen `1 - IID`, sehingga ketika IID Desa naik maka deprivasi digital desa turun.</div>",
+        "<div class='section-note'>This section treats the village digital inclusion index as the primary outcome. The `ikd_desa` field is interpreted as the digital deprivation score, defined as the complement of `1 - iid_desa`; therefore, higher inclusion corresponds to lower digital deprivation.</div>",
         unsafe_allow_html=True,
     )
     st.caption(
-        "Determinasi memakai regresi linier atas transformasi log natural ln(100*X+epsilon); faktor 100 hanya untuk transformasi statistik. OAT memakai kenaikan langsung yang dipilih pada skala indeks 0-1, sedangkan Shapley R² membagi kontribusi indikator terhadap dimensi asal dan IID Desa secara proporsional."
+        "Determination statistics are estimated with linear regression on the natural-log transformation ln(100*X+epsilon); the factor 100 is used only for statistical transformation. The OAT simulation applies the selected increase directly on the 0-1 index scale, while Shapley R-squared allocates indicator contributions proportionally to the source dimension and to the village digital inclusion index."
     )
-    st.caption("Gradasi merah menandai tiga nilai tertinggi pada setiap grafik: merah paling tua untuk peringkat 1, lalu merah kuat untuk peringkat 2, dan merah sedang untuk peringkat 3.")
+    st.caption("The red gradient highlights the three largest values in each chart: darkest red for rank 1, strong red for rank 2, and medium red for rank 3.")
 
     if download_tables:
-        st.markdown("### Unduh data analisis lanjutan")
+        st.markdown("### Download Advanced Analysis Data")
         excel_sheet_map = {TABLE_SPECS[key]["label"]: df for key, df in download_tables.items()}
         st.download_button(
-            label="Unduh semua tabel analisis lanjutan (Excel)",
+            label="Download All Advanced Analysis Tables (Excel)",
             data=excel_bytes_from_sheets(excel_sheet_map),
             file_name="analisis_lanjutan_iid_desa.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -4275,7 +4620,7 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
         for column_container, (key, df) in zip(csv_download_cols, download_tables.items(), strict=False):
             with column_container:
                 st.download_button(
-                    label=f"Unduh {TABLE_SPECS[key]['label']}",
+                    label=f"Download {TABLE_SPECS[key]['label']}",
                     data=csv_bytes(df),
                     file_name=TABLE_SPECS[key]["filename"],
                     mime="text/csv",
@@ -4284,15 +4629,15 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
                 )
 
     subtab_dimensi, subtab_variabel, subtab_oat, subtab_shapley = st.tabs(
-        ["Determinasi Dimensi", "Determinasi Variabel", "Sensitivitas OAT", "Shapley"]
+        ["Dimension Determination", "Indicator Determination", "OAT Sensitivity", "Shapley"]
     )
 
     with subtab_dimensi:
         if dimension_df.empty:
-            st.info("Tabel determinasi dimensi belum tersedia.")
+            st.info("The dimension determination table is not available.")
         else:
             st.caption(
-                "R² menunjukkan seberapa besar variasi IID Desa dapat dijelaskan oleh setiap dimensi setelah transformasi log natural."
+                "R-squared indicates the share of variation in the village digital inclusion index explained by each dimension after natural-log transformation."
             )
             st.plotly_chart(
                 build_dimension_determinant_figure(dimension_df),
@@ -4303,23 +4648,25 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
 
     with subtab_variabel:
         if variable_df.empty:
-            st.info("Tabel determinasi variabel belum tersedia.")
+            st.info("The indicator determination table is not available.")
         else:
             st.caption(
-                "Determinasi variabel dibaca dua tingkat: indikator terhadap dimensi asalnya, dan indikator terhadap IID Desa secara keseluruhan."
+                "Indicator determination is reported at two levels: each indicator against its source dimension and each indicator against the overall village digital inclusion index."
             )
-            dimension_options = ["Semua dimensi"] + variable_df["Dimensi"].dropna().astype(str).unique().tolist()
+            all_dimensions_label = "All Dimensions"
+            dimension_options = [all_dimensions_label] + variable_df["Dimensi"].dropna().astype(str).unique().tolist()
             selected_dimension = st.selectbox(
-                "Pilih dimensi",
+                "Select Dimension",
                 options=dimension_options,
+                format_func=lambda value: all_dimensions_label if value == all_dimensions_label else str(translate_display_text(value, "Dimensi")),
                 key="advanced_variable_dimension_filter",
             )
             filtered_variable_df = variable_df.copy()
-            if selected_dimension != "Semua dimensi":
+            if selected_dimension != all_dimensions_label:
                 filtered_variable_df = filtered_variable_df[filtered_variable_df["Dimensi"].astype(str) == selected_dimension]
 
             metric_column = st.selectbox(
-                "Metrik yang ditonjolkan",
+                "Highlighted Metric",
                 options=[column for column in ("R2 Dimensi", "R2 IID Desa") if column in filtered_variable_df.columns],
                 format_func=format_analysis_metric_label,
                 key="advanced_variable_metric",
@@ -4337,10 +4684,10 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
 
     with subtab_oat:
         if oat_df.empty:
-            st.info("Tabel sensitivitas OAT belum tersedia.")
+            st.info("The OAT sensitivity table is not available.")
         else:
             selected_oat_percent = st.selectbox(
-                "Pilih kenaikan dimensi OAT",
+                "Select OAT Dimension Increase",
                 options=list(range(1, 101)),
                 index=0,
                 format_func=lambda value: f"{value}%",
@@ -4355,34 +4702,36 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
             if dynamic_oat_df.empty:
                 dynamic_oat_df = oat_df
             st.caption(
-                f"Simulasi OAT menaikkan satu dimensi sebesar {oat_increment:.2f} atau {selected_oat_percent}% langsung pada skala indeks 0-1, sementara dimensi lain tetap. Grafik hanya menampilkan perubahan persentase; delta absolut dan keterangan skenario tetap tersedia pada tabel."
+                f"The OAT simulation increases one dimension by {oat_increment:.2f}, equivalent to {selected_oat_percent}%, directly on the 0-1 index scale while holding other dimensions constant. The chart reports percentage changes; absolute deltas and scenario notes remain available in the table."
             )
             st.plotly_chart(
                 build_oat_sensitivity_figure(dynamic_oat_df),
                 use_container_width=True,
                 key="advanced_oat_sensitivity",
             )
-            st.dataframe(iid_pipeline.round_numeric_dataframe(dynamic_oat_df), use_container_width=True, hide_index=True)
+            st.dataframe(with_analysis_metric_display_columns(iid_pipeline.round_numeric_dataframe(dynamic_oat_df)), use_container_width=True, hide_index=True)
 
     with subtab_shapley:
         if shapley_df.empty:
-            st.info("Tabel kontribusi Shapley belum tersedia.")
+            st.info("The Shapley contribution table is not available.")
         else:
             st.caption(
-                "Shapley R² membagi kontribusi penjelasan model kepada indikator berdasarkan kontribusi marginal pada seluruh kombinasi indikator. Nilai dimensi membaca kontribusi indikator terhadap dimensi asal; nilai IID Desa membaca kontribusi indikator terhadap outcome utama."
+                "Shapley R-squared allocates explanatory model contribution to indicators based on their marginal contribution across all indicator combinations. Dimension values refer to each indicator's contribution to its source dimension, while index values refer to the primary village-level outcome."
             )
-            shapley_dimension_options = ["Semua dimensi"] + shapley_df["Dimensi"].dropna().astype(str).unique().tolist()
+            all_dimensions_label = "All Dimensions"
+            shapley_dimension_options = [all_dimensions_label] + shapley_df["Dimensi"].dropna().astype(str).unique().tolist()
             selected_shapley_dimension = st.selectbox(
-                "Pilih dimensi untuk Shapley",
+                "Select Dimension for Shapley Analysis",
                 options=shapley_dimension_options,
+                format_func=lambda value: all_dimensions_label if value == all_dimensions_label else str(translate_display_text(value, "Dimensi")),
                 key="advanced_shapley_dimension_filter",
             )
             filtered_shapley_df = shapley_df.copy()
-            if selected_shapley_dimension != "Semua dimensi":
+            if selected_shapley_dimension != all_dimensions_label:
                 filtered_shapley_df = filtered_shapley_df[filtered_shapley_df["Dimensi"].astype(str) == selected_shapley_dimension]
 
             shapley_metric = st.selectbox(
-                "Tampilan nilai Shapley",
+                "Displayed Shapley Metric",
                 options=[
                     column
                     for column in (
@@ -4414,16 +4763,21 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
 def render_variable_tab(tables: dict[str, pd.DataFrame]) -> None:
     variable_df = tables.get("penjelasan_variabel", pd.DataFrame()).copy()
     if variable_df.empty:
-        st.warning("Tabel penjelasan variabel belum tersedia.")
+        st.warning("The variable documentation table is not available.")
         return
 
     filter_cols = st.columns(2)
-    dimensi_options = ["Semua dimensi"] + sorted(variable_df["dimensi"].dropna().astype(str).unique().tolist()) if "dimensi" in variable_df.columns else ["Semua dimensi"]
-    selected_dimension = filter_cols[0].selectbox("Filter dimensi", options=dimensi_options)
-    keyword = filter_cols[1].text_input("Cari variabel atau konsep", value="")
+    all_dimensions_label = "All Dimensions"
+    dimensi_options = [all_dimensions_label] + sorted(variable_df["dimensi"].dropna().astype(str).unique().tolist()) if "dimensi" in variable_df.columns else [all_dimensions_label]
+    selected_dimension = filter_cols[0].selectbox(
+        "Dimension Filter",
+        options=dimensi_options,
+        format_func=lambda value: all_dimensions_label if value == all_dimensions_label else str(translate_display_text(value, "dimensi")),
+    )
+    keyword = filter_cols[1].text_input("Search Variable or Concept", value="")
 
     filtered_df = variable_df.copy()
-    if selected_dimension != "Semua dimensi" and "dimensi" in filtered_df.columns:
+    if selected_dimension != all_dimensions_label and "dimensi" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["dimensi"].astype(str) == selected_dimension]
     if keyword.strip():
         keyword_mask = filtered_df.apply(
@@ -4432,21 +4786,21 @@ def render_variable_tab(tables: dict[str, pd.DataFrame]) -> None:
         )
         filtered_df = filtered_df[keyword_mask]
 
-    st.caption(f"Menampilkan {len(filtered_df):,} baris penjelasan variabel.".replace(",", "."))
-    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+    st.caption(f"Displaying {len(filtered_df):,} variable documentation rows.")
+    st.dataframe(prepare_display_dataframe(filtered_df), use_container_width=True, hide_index=True)
 
     if not filtered_df.empty and "nama_variabel" in filtered_df.columns:
-        chosen_variable = st.selectbox("Pilih variabel untuk melihat detail", options=filtered_df["nama_variabel"].astype(str).tolist())
+        chosen_variable = st.selectbox("Select a Variable for Detail Review", options=filtered_df["nama_variabel"].astype(str).tolist())
         selected_row = filtered_df.loc[filtered_df["nama_variabel"].astype(str) == chosen_variable].head(1).T.reset_index()
         selected_row.columns = ["atribut", "nilai"]
-        st.markdown("### Detail variabel")
-        st.dataframe(selected_row, use_container_width=True, hide_index=True)
+        st.markdown("### Variable Detail")
+        st.dataframe(prepare_display_dataframe(selected_row), use_container_width=True, hide_index=True)
 
 
 def render_table_explorer_tab(tables: dict[str, pd.DataFrame]) -> None:
     available_keys = [key for key in TABLE_SPECS if key in tables]
     option_labels = {TABLE_SPECS[key]["label"]: key for key in available_keys}
-    selected_label = st.selectbox("Pilih tabel", options=list(option_labels.keys()))
+    selected_label = st.selectbox("Select Table", options=list(option_labels.keys()))
     selected_key = option_labels[selected_label]
     df = tables[selected_key]
     spec = TABLE_SPECS[selected_key]
@@ -4456,22 +4810,26 @@ def render_table_explorer_tab(tables: dict[str, pd.DataFrame]) -> None:
 
     overview_cols = st.columns([0.9, 1.1])
     with overview_cols[0]:
-        st.markdown("#### Deskripsi tabel")
+        st.markdown("#### Table Description")
         st.dataframe(build_table_overview(df), use_container_width=True, hide_index=True)
     with overview_cols[1]:
-        st.markdown("#### Profil kolom")
+        st.markdown("#### Column Profile")
         st.dataframe(build_column_profile(df), use_container_width=True, hide_index=True)
 
     if len(df.columns) > 0:
-        inspected_column = st.selectbox("Kolom yang ingin diperiksa", options=df.columns.tolist())
+        inspected_column = st.selectbox(
+            "Column for Detailed Review",
+            options=df.columns.tolist(),
+            format_func=lambda value: DISPLAY_COLUMN_LABELS.get(value, value),
+        )
         render_column_detail(df, inspected_column)
 
-    preview_limit = st.slider("Jumlah baris preview", min_value=20, max_value=300, value=100, step=20)
-    st.markdown("#### Preview data")
-    st.dataframe(df.head(preview_limit), use_container_width=True, hide_index=True)
+    preview_limit = st.slider("Preview Row Count", min_value=20, max_value=300, value=100, step=20)
+    st.markdown("#### Data Preview")
+    st.dataframe(prepare_display_dataframe(df.head(preview_limit)), use_container_width=True, hide_index=True)
 
     st.download_button(
-        label=f"Unduh {spec['filename']}",
+        label=f"Download {spec['filename']}",
         data=csv_bytes(df),
         file_name=spec["filename"],
         mime="text/csv",
@@ -4483,11 +4841,11 @@ def render_scheme_tables(tables: dict[str, pd.DataFrame]) -> None:
     if not optional_keys:
         return
 
-    st.markdown("### Tabel tambahan skema")
+    st.markdown("### Additional Scheme Tables")
     for key in optional_keys:
         st.markdown(f"#### {TABLE_SPECS[key]['label']}")
         st.caption(TABLE_SPECS[key]["description"])
-        st.dataframe(tables[key], use_container_width=True, hide_index=True)
+        st.dataframe(prepare_display_dataframe(tables[key]), use_container_width=True, hide_index=True)
 
 
 def main() -> None:
@@ -4495,7 +4853,7 @@ def main() -> None:
     render_sidebar()
 
     try:
-        with st.spinner("Memuat dashboard dan tabel hasil olah data..."):
+        with st.spinner("Loading dashboard tables and processed outputs..."):
             bundle = resolve_bundle_from_request()
     except Exception as exc:
         st.error(str(exc))
@@ -4504,26 +4862,26 @@ def main() -> None:
     meta = bundle["meta"]
     tables = bundle["tables"]
 
-    with st.spinner("Menghitung statistik HP, anggota keluarga, dan biaya komunikasi..."):
+    with st.spinner("Computing mobile phone, household-size, and communication-expenditure statistics..."):
         household_detail_df = resolve_household_detail_df(meta, tables)
 
     render_hero(meta)
 
     if meta.get("workbook_path"):
         st.markdown(
-            f"<div class='small-muted'>Workbook Excel tersedia di <code>{meta['workbook_path']}</code></div>",
+            f"<div class='small-muted'>The Excel workbook is available at <code>{meta['workbook_path']}</code></div>",
             unsafe_allow_html=True,
         )
 
     tab_ringkasan, tab_rt, tab_journal, tab_desa, tab_analisis, tab_variabel, tab_tabel = st.tabs(
         [
-            "Ringkasan",
-            "Rumah Tangga",
+            "Summary",
+            "Households",
             "Journal Analysis",
-            "Desa",
-            "Analisis Lanjutan",
-            "Penjelasan Variabel",
-            "Eksplorasi Tabel",
+            "Villages",
+            "Advanced Analysis",
+            "Variable Documentation",
+            "Table Explorer",
         ]
     )
 
