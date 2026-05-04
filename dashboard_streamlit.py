@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import numbers
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -790,10 +791,10 @@ def detect_default_input_path() -> Path | None:
 def format_number(value: Any, digits: int = 3) -> str:
     if value is None or pd.isna(value):
         return "-"
-    if isinstance(value, int):
-        return f"{value:,}"
-    if isinstance(value, float):
-        return f"{value:.{digits}f}"
+    if isinstance(value, numbers.Integral):
+        return f"{int(value):,}"
+    if isinstance(value, numbers.Real):
+        return f"{float(value):,.{digits}f}"
     return str(value)
 
 
@@ -1415,7 +1416,7 @@ def build_ranked_red_bar_figure(
     fig.update_traces(marker_line_color="#7f1d1d", marker_line_width=0.8)
     if orientation == "v":
         fig.update_xaxes(tickangle=-22)
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def resolve_inequality_tables(tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -1537,7 +1538,7 @@ def build_top_inequality_contributors_figure(
         margin=dict(l=20, r=20, t=55, b=20),
     )
     fig.update_xaxes(tickformat=".2%", hoverformat=".2%")
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_contributor_profile_preview_df(contributor_df: pd.DataFrame) -> pd.DataFrame:
@@ -1636,6 +1637,77 @@ def format_journal_percent(value: Any, digits: int = 1) -> str:
     if value is None or pd.isna(value):
         return "-"
     return f"{float(value) * 100:.{digits}f}%"
+
+
+PUBLICATION_FONT_FAMILY = "Arial, Helvetica, sans-serif"
+CARTESIAN_TRACE_TYPES = {"bar", "box", "histogram", "scatter", "heatmap"}
+
+
+def apply_publication_figure_style(
+    fig: go.Figure,
+    *,
+    integer_x: bool = False,
+    integer_y: bool = False,
+) -> go.Figure:
+    fig.update_layout(
+        template="plotly_white",
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        separators=".,",
+        font=dict(family=PUBLICATION_FONT_FAMILY, size=13, color="#1f2937"),
+        title=dict(x=0, xanchor="left", font=dict(size=18, color="#111827")),
+        hoverlabel=dict(
+            bgcolor="#ffffff",
+            bordercolor="#cbd5e1",
+            font=dict(family=PUBLICATION_FONT_FAMILY, size=12, color="#111827"),
+        ),
+        legend=dict(
+            font=dict(size=12),
+            title_font=dict(size=12),
+        ),
+        uniformtext_minsize=10,
+        uniformtext_mode="hide",
+    )
+
+    has_cartesian_axes = any(getattr(trace, "type", None) in CARTESIAN_TRACE_TYPES for trace in fig.data)
+    if has_cartesian_axes:
+        axis_style = dict(
+            showline=True,
+            linewidth=1,
+            linecolor="#cbd5e1",
+            ticks="outside",
+            tickcolor="#cbd5e1",
+            ticklen=4,
+            gridcolor="#e5e7eb",
+            zeroline=False,
+            automargin=True,
+            exponentformat="none",
+            separatethousands=True,
+            tickfont=dict(size=12, color="#4b5563"),
+            title_font=dict(size=13, color="#4b5563"),
+        )
+        fig.update_xaxes(**axis_style)
+        fig.update_yaxes(**axis_style)
+        if integer_x:
+            fig.update_xaxes(tickformat=",.0f")
+        if integer_y:
+            fig.update_yaxes(tickformat=",.0f")
+
+    fig.update_traces(
+        textfont=dict(family=PUBLICATION_FONT_FAMILY, size=12),
+        cliponaxis=False,
+        selector=dict(type="bar"),
+    )
+    return fig
+
+
+def apply_bar_value_text_format(fig: go.Figure, value_axis: str, digits: int = 0, suffix: str = "") -> go.Figure:
+    fig.update_traces(
+        texttemplate=f"%{{{value_axis}:,.{digits}f}}{suffix}",
+        textposition="auto",
+        selector=dict(type="bar"),
+    )
+    return fig
 
 
 def format_journal_dataframe(
@@ -1952,7 +2024,7 @@ def build_journal_domain_profile_figure(profile_df: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=60, b=20),
     )
     fig.update_xaxes(range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_indicator_profile_figure(indicator_df: pd.DataFrame) -> go.Figure:
@@ -1975,7 +2047,7 @@ def build_journal_indicator_profile_figure(indicator_df: pd.DataFrame) -> go.Fig
         height=max(520, 30 * max(len(indicator_df), 1) + 160),
     )
     fig.update_xaxes(range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def normalize_journal_raw_text_series(series: pd.Series) -> pd.Series:
@@ -2023,7 +2095,7 @@ def build_journal_education_histogram_figure(raw_df: pd.DataFrame) -> go.Figure 
         color="Households",
         color_continuous_scale=["#dbeafe", "#2563eb", "#163249"],
         text="Households",
-        hover_data={"Share": ":.2%"},
+        custom_data=["Share"],
     )
     fig.update_layout(
         title="Educational Attainment of Household Heads",
@@ -2034,7 +2106,15 @@ def build_journal_education_histogram_figure(raw_df: pd.DataFrame) -> go.Figure 
         showlegend=False,
     )
     fig.update_xaxes(tickformat=",.0f")
-    return fig
+    apply_bar_value_text_format(fig, "x")
+    fig.update_traces(
+        hovertemplate=(
+            "Educational Attainment: %{y}<br>"
+            "Households: %{x:,.0f}<br>"
+            "Share: %{customdata[0]:.2%}<extra></extra>"
+        )
+    )
+    return apply_publication_figure_style(fig, integer_x=True)
 
 
 def build_journal_device_ownership_bar_figure(raw_df: pd.DataFrame) -> go.Figure | None:
@@ -2109,7 +2189,7 @@ def build_journal_device_ownership_bar_figure(raw_df: pd.DataFrame) -> go.Figure
     )
     fig.update_xaxes(tickangle=-14, automargin=True)
     fig.update_yaxes(tickformat=".0%", range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_phone_count_histogram_figure(raw_df: pd.DataFrame) -> go.Figure | None:
@@ -2133,7 +2213,7 @@ def build_journal_phone_count_histogram_figure(raw_df: pd.DataFrame) -> go.Figur
         color="Households",
         color_continuous_scale=["#dbeafe", "#2563eb", "#163249"],
         text="Households",
-        hover_data={"Share": ":.2%"},
+        custom_data=["Share"],
     )
     fig.update_layout(
         title="Distribution of Mobile Phone Counts per Household",
@@ -2142,7 +2222,15 @@ def build_journal_phone_count_histogram_figure(raw_df: pd.DataFrame) -> go.Figur
         coloraxis_showscale=False,
         margin=dict(l=20, r=20, t=60, b=20),
     )
-    return fig
+    apply_bar_value_text_format(fig, "y")
+    fig.update_traces(
+        hovertemplate=(
+            "Number of Mobile Phones: %{x}<br>"
+            "Households: %{y:,.0f}<br>"
+            "Share: %{customdata[0]:.2%}<extra></extra>"
+        )
+    )
+    return apply_publication_figure_style(fig, integer_y=True)
 
 
 def build_journal_internet_access_pie_figure(raw_df: pd.DataFrame) -> go.Figure | None:
@@ -2208,7 +2296,7 @@ def build_journal_internet_access_pie_figure(raw_df: pd.DataFrame) -> go.Figure 
         textinfo="percent+label",
         hovertemplate="Access Type: %{label}<br>Households: %{value:,.0f}<br>Share: %{percent}<extra></extra>",
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_social_participation_bar_figure(raw_df: pd.DataFrame) -> go.Figure | None:
@@ -2262,7 +2350,7 @@ def build_journal_social_participation_bar_figure(raw_df: pd.DataFrame) -> go.Fi
         margin=dict(l=20, r=20, t=60, b=20),
     )
     fig.update_xaxes(tickformat=".0%", range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_category_share_df(household_df: pd.DataFrame) -> pd.DataFrame:
@@ -2296,7 +2384,7 @@ def build_journal_household_histogram_figure(household_df: pd.DataFrame) -> go.F
         margin=dict(l=20, r=20, t=60, b=20),
     )
     fig.update_xaxes(range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig, integer_y=True)
 
 
 def build_journal_category_share_figure(category_df: pd.DataFrame) -> go.Figure:
@@ -2320,7 +2408,7 @@ def build_journal_category_share_figure(category_df: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=60, b=20),
     )
     fig.update_yaxes(tickformat=".0%", range=[0, max(float(plot_df["Share"].max()) * 1.18, 0.05)])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_household_boxplot_figure(
@@ -2354,7 +2442,7 @@ def build_journal_household_boxplot_figure(
     )
     fig.update_xaxes(tickangle=-45, automargin=True)
     fig.update_yaxes(range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_vulnerability_summary_df(household_df: pd.DataFrame) -> pd.DataFrame:
@@ -2442,7 +2530,7 @@ def build_journal_vulnerability_figure(
         margin=dict(l=20, r=20, t=60, b=20),
     )
     fig.update_xaxes(tickformat=".0%")
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_village_ranking_table(village_df: pd.DataFrame) -> pd.DataFrame:
@@ -2509,7 +2597,7 @@ def build_journal_village_index_bar_figure(
         showlegend=False,
     )
     fig.update_xaxes(range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_village_map_figure(village_df: pd.DataFrame) -> go.Figure | None:
@@ -2546,7 +2634,7 @@ def build_journal_village_map_figure(village_df: pd.DataFrame) -> go.Figure | No
         margin=dict(l=10, r=10, t=60, b=10),
         coloraxis_colorbar_title="Village Index",
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_dimension_strength_df(village_df: pd.DataFrame) -> pd.DataFrame:
@@ -2593,7 +2681,7 @@ def build_journal_dimension_bar_figure(strength_df: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=60, b=20),
     )
     fig.update_xaxes(range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_dimension_radar_figure(
@@ -2624,7 +2712,7 @@ def build_journal_dimension_radar_figure(
         margin=dict(l=20, r=20, t=70, b=20),
         height=560,
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_dimension_heatmap_figure(
@@ -2661,7 +2749,7 @@ def build_journal_dimension_heatmap_figure(
     )
     fig.update_xaxes(side="top")
     fig.update_yaxes(automargin=True)
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_lagging_dimension_table(village_df: pd.DataFrame, bottom_n: int = 3) -> pd.DataFrame:
@@ -2729,7 +2817,7 @@ def build_journal_deprivation_scatter_figure(village_df: pd.DataFrame) -> go.Fig
         coloraxis_colorbar_title="Deprivation Score",
         margin=dict(l=20, r=20, t=70, b=20),
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_deprivation_bar_figure(
@@ -2763,7 +2851,7 @@ def build_journal_deprivation_bar_figure(
         margin=dict(l=20, r=20, t=60, b=20),
     )
     fig.update_xaxes(range=[0, max(float(plot_df["ikd_desa"].max()) * 1.15, 0.05)])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_journal_deprivation_priority_table(village_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -2912,7 +3000,8 @@ def build_category_count_figure(household_df: pd.DataFrame) -> go.Figure:
         showlegend=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
-    return fig
+    apply_bar_value_text_format(fig, "y")
+    return apply_publication_figure_style(fig, integer_y=True)
 
 
 def build_household_histogram_figure(household_df: pd.DataFrame) -> go.Figure:
@@ -2928,7 +3017,7 @@ def build_household_histogram_figure(household_df: pd.DataFrame) -> go.Figure:
         yaxis_title="Number of Households",
         margin=dict(l=20, r=20, t=55, b=20),
     )
-    return fig
+    return apply_publication_figure_style(fig, integer_y=True)
 
 
 def build_household_average_figure(detail_df: pd.DataFrame) -> go.Figure:
@@ -2954,7 +3043,7 @@ def build_household_average_figure(detail_df: pd.DataFrame) -> go.Figure:
         showlegend=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_comm_cost_distribution_figure(detail_df: pd.DataFrame) -> go.Figure:
@@ -2974,7 +3063,7 @@ def build_comm_cost_distribution_figure(detail_df: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=55, b=20),
     )
     fig.update_xaxes(tickformat=",.0f")
-    return fig
+    return apply_publication_figure_style(fig, integer_x=True, integer_y=True)
 
 
 def build_household_resource_by_desa_figure(detail_df: pd.DataFrame, metric: str, top_n: int = 12) -> go.Figure:
@@ -3006,7 +3095,9 @@ def build_household_resource_by_desa_figure(detail_df: pd.DataFrame, metric: str
     )
     if metric == "rp_komunikasi_tertinggi":
         fig.update_xaxes(tickformat=",.0f")
-    return fig
+        apply_bar_value_text_format(fig, "x")
+        return apply_publication_figure_style(fig, integer_x=True)
+    return apply_publication_figure_style(fig)
 
 
 def build_person_distribution_figure(warga_df: pd.DataFrame) -> go.Figure:
@@ -3032,7 +3123,14 @@ def build_person_distribution_figure(warga_df: pd.DataFrame) -> go.Figure:
         legend_title_text="Digital Inclusion Category",
         margin=dict(l=10, r=10, t=55, b=10),
     )
-    return fig
+    fig.update_traces(
+        hovertemplate=(
+            "Digital Inclusion Category: %{label}<br>"
+            "Residents: %{value:,.0f}<br>"
+            "Share: %{percent}<extra></extra>"
+        )
+    )
+    return apply_publication_figure_style(fig)
 
 
 def build_top_bottom_desa_figure(desa_df: pd.DataFrame, mode: str) -> go.Figure:
@@ -3060,7 +3158,7 @@ def build_top_bottom_desa_figure(desa_df: pd.DataFrame, mode: str) -> go.Figure:
         margin=dict(l=20, r=20, t=55, b=20),
         showlegend=False,
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_dimension_profile_figure(desa_df: pd.DataFrame) -> go.Figure:
@@ -3085,7 +3183,7 @@ def build_dimension_profile_figure(desa_df: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=55, b=20),
     )
     fig.update_yaxes(range=[0, 1])
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_gini_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
@@ -3099,6 +3197,11 @@ def build_gini_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
         hover_name="deskel",
         color="Relative Gini Category",
         color_discrete_map=GINI_COLORS,
+        hover_data={
+            "jumlah_kk": ":,.0f",
+            "iid_desa": ":.3f",
+            "gini_iid_rumah_tangga": ":.3f",
+        },
         labels={
             "iid_desa": "Village Digital Inclusion Index",
             "gini_iid_rumah_tangga": "Within-Village Gini",
@@ -3113,7 +3216,7 @@ def build_gini_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
         legend_title_text="Relative Gini Category",
         margin=dict(l=20, r=20, t=55, b=20),
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def add_ikd_tertile_columns(desa_df: pd.DataFrame) -> pd.DataFrame:
@@ -3161,7 +3264,8 @@ def build_ikd_tertile_distribution_figure(desa_df: pd.DataFrame) -> go.Figure:
         showlegend=False,
         margin=dict(l=20, r=20, t=55, b=20),
     )
-    return fig
+    apply_bar_value_text_format(fig, "y")
+    return apply_publication_figure_style(fig, integer_y=True)
 
 
 def build_ikd_tertile_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
@@ -3175,7 +3279,7 @@ def build_ikd_tertile_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
         color_discrete_map=IKD_RELATIVE_COLORS,
         category_orders={"kategori_tertil": IKD_RELATIVE_ORDER},
         hover_name="deskel",
-        hover_data={"ikd_tertil": True, "kategori_tertil": True, "jumlah_kk": True, "Village Order": False},
+        hover_data={"ikd_tertil": True, "kategori_tertil": True, "jumlah_kk": ":,.0f", "Village Order": False},
         labels={
             "ikd_desa": "Village Digital Deprivation Score",
             "ikd_tertil": "Digital Deprivation Tertile",
@@ -3192,7 +3296,7 @@ def build_ikd_tertile_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
         legend_title_text="Relative Digital Deprivation Class",
         margin=dict(l=20, r=20, t=55, b=20),
     )
-    return fig
+    return apply_publication_figure_style(fig, integer_x=True)
 
 
 def prepare_desa_distribution_matrix(
@@ -3269,7 +3373,7 @@ def build_desa_distribution_heatmap(pivot_df: pd.DataFrame) -> go.Figure:
     )
     fig.update_xaxes(side="top")
     fig.update_yaxes(automargin=True)
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_desa_distribution_focus_figure(distribution_df: pd.DataFrame, selected_label: str) -> go.Figure:
@@ -3306,7 +3410,8 @@ def build_desa_distribution_focus_figure(distribution_df: pd.DataFrame, selected
         showlegend=False,
     )
     fig.update_yaxes(ticksuffix="%")
-    return fig
+    apply_bar_value_text_format(fig, "y", digits=2, suffix="%")
+    return apply_publication_figure_style(fig)
 
 
 def build_map_figure(household_df: pd.DataFrame) -> go.Figure | None:
@@ -3343,7 +3448,7 @@ def build_map_figure(household_df: pd.DataFrame) -> go.Figure | None:
         margin=dict(l=10, r=10, t=55, b=10),
         legend_title_text="Digital Inclusion Category",
     )
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_table_overview(df: pd.DataFrame) -> pd.DataFrame:
@@ -4548,7 +4653,7 @@ def build_oat_sensitivity_figure(oat_df: pd.DataFrame) -> go.Figure:
     fig.update_traces(marker_line_color="#7f1d1d", marker_line_width=0.8)
     fig.update_xaxes(tickangle=-20)
     fig.for_each_annotation(lambda ann: ann.update(text=ann.text.split("=")[-1]))
-    return fig
+    return apply_publication_figure_style(fig)
 
 
 def build_variable_determinant_figure(variable_df: pd.DataFrame, metric_column: str) -> go.Figure:
