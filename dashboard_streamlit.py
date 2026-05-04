@@ -198,6 +198,54 @@ DIMENSION_LABELS = {
     "dimensi_D": "Penggunaan digital",
     "dimensi_E": "Lingkungan sosial",
 }
+JOURNAL_CATEGORY_LABELS = {
+    "sangat rendah": "Very Low",
+    "rendah": "Low",
+    "sedang": "Moderate",
+    "tinggi": "High",
+    "sangat tinggi": "Very High",
+}
+JOURNAL_CATEGORY_ORDER = ["Very Low", "Low", "Moderate", "High", "Very High"]
+JOURNAL_CATEGORY_COLORS = {
+    JOURNAL_CATEGORY_LABELS[category]: CATEGORY_COLORS[category]
+    for category in VISIBLE_CATEGORY_ORDER
+    if category in JOURNAL_CATEGORY_LABELS
+}
+JOURNAL_GINI_LABELS = {
+    "Rendah": "Low",
+    "Sedang": "Moderate",
+    "Tinggi": "High",
+}
+JOURNAL_DIMENSION_LABELS = {
+    "dimensi_A": "Device Access",
+    "dimensi_B": "Internet Connectivity",
+    "dimensi_C": "Human Capacity",
+    "dimensi_D": "Digital Use",
+    "dimensi_E": "Social Enabling Environment",
+}
+JOURNAL_INDICATOR_LABELS = {
+    "indikator_A": "Mobile Phone Ownership",
+    "indikator_B": "Mobile Phone Sufficiency",
+    "indikator_C": "Productive Digital Device Ownership",
+    "indikator_D": "Household Internet Access",
+    "indikator_E": "Household Head Educational Attainment",
+    "indikator_F": "School Participation Ratio",
+    "indikator_G": "Household Head Organizational Involvement",
+    "indikator_H": "Household Member Organizational Involvement",
+    "indikator_I": "Household Head Community Participation",
+    "indikator_J": "Household Member Community Participation",
+    "indikator_K": "Social Media Use",
+    "indikator_L": "Information Media Access",
+    "indikator_M": "Policy Information Participation",
+}
+JOURNAL_PROFILE_DOMAINS = {
+    "Educational Characteristics": ("indikator_E",),
+    "Device Ownership": ("dimensi_A",),
+    "Internet Access": ("dimensi_B",),
+    "Digital Use": ("dimensi_D",),
+    "Social Participation": ("dimensi_E",),
+}
+JOURNAL_VILLAGE_PAGE_SIZE = 10
 
 ANALYSIS_METRIC_LABELS = {
     "R2 IID Desa": "R² IID Desa",
@@ -828,9 +876,33 @@ def load_household_detail_cached(
         "suku",
         "jml_keluarga",
         "jumlah_anggota_rumah_tangga",
+        "hp_punya",
+        "hp_jumlah",
         "hp_jumlah_num",
         "hp_jumlah_terstandar",
+        "elektronik_rumah",
+        "jumlah_perangkat_produktif_rumah_tangga",
+        "wifi",
+        "hp_provider",
+        "wifi_teragregasi",
+        "hp_provider_teragregasi",
         "rp_komunikasi_tertinggi",
+        "ijazah",
+        "partisipasi_sekolah",
+        "jumlah_anggota_usia_sekolah",
+        "jumlah_status_sekolah_terisi",
+        "jumlah_anggota_sedang_sekolah",
+        "par_organisasi",
+        "organisasi_nama",
+        "par_masyarakat",
+        "medsos",
+        "media_informasi",
+        "par_kebijakan",
+        "jumlah_organisasi_kepala",
+        "jumlah_organisasi_anggota",
+        "jumlah_partisipasi_masyarakat_kepala",
+        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_partisipasi_kebijakan",
         "iid_rt",
         "ikd_rt",
     ]
@@ -839,9 +911,19 @@ def load_household_detail_cached(
     for column in (
         "jml_keluarga",
         "jumlah_anggota_rumah_tangga",
+        "hp_jumlah",
         "hp_jumlah_num",
         "hp_jumlah_terstandar",
+        "jumlah_perangkat_produktif_rumah_tangga",
         "rp_komunikasi_tertinggi",
+        "jumlah_anggota_usia_sekolah",
+        "jumlah_status_sekolah_terisi",
+        "jumlah_anggota_sedang_sekolah",
+        "jumlah_organisasi_kepala",
+        "jumlah_organisasi_anggota",
+        "jumlah_partisipasi_masyarakat_kepala",
+        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_partisipasi_kebijakan",
         "iid_rt",
         "ikd_rt",
         "lat",
@@ -1242,6 +1324,1187 @@ def get_coordinate_columns(df: pd.DataFrame) -> tuple[str | None, str | None]:
             lon_col = candidate
             break
     return lat_col, lon_col
+
+
+def format_journal_number(value: Any, digits: int = 3) -> str:
+    if value is None or pd.isna(value):
+        return "-"
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return f"{numeric_value:,.{digits}f}" if digits > 0 else f"{numeric_value:,.0f}"
+
+
+def format_journal_percent(value: Any, digits: int = 1) -> str:
+    if value is None or pd.isna(value):
+        return "-"
+    return f"{float(value) * 100:.{digits}f}%"
+
+
+def format_journal_dataframe(
+    df: pd.DataFrame,
+    percent_columns: tuple[str, ...] = (),
+    integer_columns: tuple[str, ...] = (),
+    score_columns: tuple[str, ...] = (),
+) -> pd.DataFrame:
+    display_df = df.copy()
+    for column in percent_columns:
+        if column in display_df.columns:
+            display_df[column] = display_df[column].map(format_journal_percent)
+    for column in integer_columns:
+        if column in display_df.columns:
+            display_df[column] = display_df[column].map(lambda value: format_journal_number(value, 0))
+    for column in score_columns:
+        if column in display_df.columns:
+            display_df[column] = pd.to_numeric(display_df[column], errors="coerce").round(3)
+    return display_df
+
+
+def add_journal_village_name(
+    df: pd.DataFrame,
+    label_column: str = "Village",
+    name_column: str = "deskel",
+    code_column: str = "kode_deskel",
+) -> pd.DataFrame:
+    labeled_df = df.copy()
+    if labeled_df.empty:
+        labeled_df[label_column] = pd.Series(dtype="string")
+        return labeled_df
+
+    if name_column in labeled_df.columns:
+        village_series = labeled_df[name_column].astype("string").str.strip()
+        village_series = village_series.mask(
+            village_series.isna() | village_series.eq("") | village_series.str.lower().eq("nan")
+        )
+        fallback_series = pd.Series(labeled_df.index.astype("string"), index=labeled_df.index)
+        labeled_df["_journal_village_base"] = village_series.fillna(fallback_series)
+
+        if code_column in labeled_df.columns:
+            village_map = (
+                labeled_df[[code_column, "_journal_village_base"]]
+                .drop_duplicates()
+                .sort_values(["_journal_village_base", code_column], kind="mergesort")
+                .copy()
+            )
+            duplicate_name_mask = village_map["_journal_village_base"].duplicated(keep=False)
+            village_map["_journal_village_number"] = (
+                village_map.groupby("_journal_village_base", dropna=False).cumcount() + 1
+            )
+            village_map[label_column] = village_map["_journal_village_base"]
+            village_map.loc[duplicate_name_mask, label_column] = (
+                village_map.loc[duplicate_name_mask, "_journal_village_base"].astype(str)
+                + " - "
+                + village_map.loc[duplicate_name_mask, "_journal_village_number"].astype(str)
+            )
+            labeled_df = labeled_df.merge(
+                village_map[[code_column, label_column]].drop_duplicates(),
+                on=code_column,
+                how="left",
+            )
+            labeled_df[label_column] = labeled_df[label_column].fillna(labeled_df["_journal_village_base"])
+        else:
+            labeled_df[label_column] = labeled_df["_journal_village_base"]
+
+        labeled_df = labeled_df.drop(columns=["_journal_village_base"], errors="ignore")
+    else:
+        labeled_df[label_column] = labeled_df.index.astype("string")
+
+    return labeled_df
+
+
+def get_journal_page_slice(total_items: int, page: int, page_size: int = JOURNAL_VILLAGE_PAGE_SIZE) -> tuple[int, int]:
+    safe_total = max(int(total_items), 0)
+    safe_page = max(int(page), 0)
+    start = min(safe_page * page_size, safe_total)
+    end = min(start + page_size, safe_total)
+    return start, end
+
+
+def render_journal_page_selector(
+    container: Any,
+    label: str,
+    total_items: int,
+    key: str,
+    page_size: int = JOURNAL_VILLAGE_PAGE_SIZE,
+) -> tuple[int, int, str]:
+    safe_total = max(int(total_items), 0)
+    if safe_total <= page_size:
+        page_label = f"Showing {safe_total} village(s)"
+        container.caption(page_label)
+        return 0, safe_total, page_label
+
+    total_pages = (safe_total + page_size - 1) // page_size
+    selected_page = container.selectbox(
+        label,
+        options=list(range(total_pages)),
+        format_func=lambda page: (
+            f"Page {page + 1} ({page * page_size + 1}-{min((page + 1) * page_size, safe_total)} of {safe_total})"
+        ),
+        key=key,
+    )
+    start, end = get_journal_page_slice(safe_total, int(selected_page), page_size)
+    return start, end, f"Page {int(selected_page) + 1}"
+
+
+def prepare_journal_household_df(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    household_df = get_household_rows(tables.get("data_keluarga", pd.DataFrame()))
+    if household_df.empty:
+        return household_df
+
+    numeric_columns = [
+        "iid_rumah_tangga",
+        *JOURNAL_DIMENSION_LABELS.keys(),
+        *JOURNAL_INDICATOR_LABELS.keys(),
+        "lat",
+        "long",
+        "lng",
+        "lon",
+        "longitude",
+        "jumlah_anggota_rumah_tangga",
+        "jml_keluarga",
+    ]
+    for column in numeric_columns:
+        if column in household_df.columns:
+            household_df[column] = pd.to_numeric(household_df[column], errors="coerce")
+
+    if "kategori_iid_rt" not in household_df.columns:
+        household_df["kategori_iid_rt"] = household_df["iid_rumah_tangga"].apply(iid_pipeline.classify_iid_rt)
+
+    household_df = exclude_unscored_iid_category(household_df)
+    household_df["Digital Inclusion Category"] = (
+        household_df["kategori_iid_rt"].astype(str).map(JOURNAL_CATEGORY_LABELS)
+    )
+    household_df = household_df.loc[household_df["Digital Inclusion Category"].notna()].copy()
+    return household_df
+
+
+def prepare_journal_raw_profile_df(detail_df: pd.DataFrame, household_df: pd.DataFrame) -> pd.DataFrame:
+    raw_columns = {
+        "ijazah",
+        "hp_punya",
+        "hp_jumlah",
+        "elektronik_rumah",
+        "wifi_teragregasi",
+        "hp_provider_teragregasi",
+        "jumlah_organisasi_kepala",
+        "jumlah_organisasi_anggota",
+        "jumlah_partisipasi_masyarakat_kepala",
+        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_partisipasi_kebijakan",
+    }
+    if not detail_df.empty and raw_columns.intersection(detail_df.columns):
+        raw_df = detail_df.copy()
+    else:
+        raw_df = household_df.copy()
+
+    if raw_df.empty:
+        return raw_df
+
+    if "family_id" in raw_df.columns:
+        raw_df = raw_df.drop_duplicates(subset=["family_id"], keep="first").copy()
+
+    if "family_id" in raw_df.columns and not household_df.empty and "family_id" in household_df.columns:
+        merge_columns = [
+            column
+            for column in ("family_id", "kategori_iid_rt", "Digital Inclusion Category")
+            if column in household_df.columns
+        ]
+        if len(merge_columns) > 1:
+            raw_df = raw_df.merge(
+                household_df[merge_columns].drop_duplicates(subset=["family_id"]),
+                on="family_id",
+                how="left",
+                suffixes=("", "_score"),
+            )
+            for column in ("kategori_iid_rt", "Digital Inclusion Category"):
+                score_column = f"{column}_score"
+                if score_column in raw_df.columns:
+                    if column in raw_df.columns:
+                        raw_df[column] = raw_df[column].fillna(raw_df[score_column])
+                    else:
+                        raw_df[column] = raw_df[score_column]
+            raw_df = raw_df.drop(columns=[column for column in raw_df.columns if column.endswith("_score")])
+
+    numeric_columns = (
+        "hp_jumlah",
+        "hp_jumlah_num",
+        "hp_jumlah_terstandar",
+        "jumlah_perangkat_produktif_rumah_tangga",
+        "jumlah_organisasi_kepala",
+        "jumlah_organisasi_anggota",
+        "jumlah_partisipasi_masyarakat_kepala",
+        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_partisipasi_kebijakan",
+    )
+    for column in numeric_columns:
+        if column in raw_df.columns:
+            raw_df[column] = pd.to_numeric(raw_df[column], errors="coerce")
+
+    return raw_df
+
+
+def prepare_journal_village_df(
+    tables: dict[str, pd.DataFrame],
+    household_df: pd.DataFrame,
+) -> pd.DataFrame:
+    village_df = normalize_desa_gini_table(tables.get("indeks_desa", pd.DataFrame()))
+    if village_df.empty:
+        return village_df
+
+    village_df = add_journal_village_name(village_df.copy())
+    numeric_columns = [
+        "jumlah_kk",
+        "iid_desa",
+        "ikd_desa",
+        "gini_iid_rumah_tangga",
+        *JOURNAL_DIMENSION_LABELS.keys(),
+    ]
+    for column in numeric_columns:
+        if column in village_df.columns:
+            village_df[column] = pd.to_numeric(village_df[column], errors="coerce")
+    if "ikd_desa" not in village_df.columns and "iid_desa" in village_df.columns:
+        village_df["ikd_desa"] = 1 - village_df["iid_desa"]
+
+    if "iid_desa" in village_df.columns:
+        village_df["Village Rank"] = village_df["iid_desa"].rank(method="first", ascending=False).astype("Int64")
+    if "interpretasi_gini" in village_df.columns:
+        village_df["Within-Village Gini Category"] = (
+            village_df["interpretasi_gini"].astype(str).map(JOURNAL_GINI_LABELS).fillna(village_df["interpretasi_gini"])
+        )
+
+    lat_col, lon_col = get_coordinate_columns(household_df)
+    if lat_col and lon_col and not household_df.empty:
+        coord_df = household_df.copy()
+        coord_df[lat_col] = pd.to_numeric(coord_df[lat_col], errors="coerce")
+        coord_df[lon_col] = pd.to_numeric(coord_df[lon_col], errors="coerce")
+        coord_df = coord_df.dropna(subset=[lat_col, lon_col])
+        if not coord_df.empty:
+            if "kode_deskel" in coord_df.columns and "kode_deskel" in village_df.columns:
+                centroid_df = (
+                    coord_df.groupby("kode_deskel", dropna=False)[[lat_col, lon_col]]
+                    .mean()
+                    .rename(columns={lat_col: "village_lat", lon_col: "village_lon"})
+                    .reset_index()
+                )
+                village_df = village_df.merge(centroid_df, on="kode_deskel", how="left")
+            elif "deskel" in coord_df.columns and "deskel" in village_df.columns:
+                centroid_df = (
+                    coord_df.groupby("deskel", dropna=False)[[lat_col, lon_col]]
+                    .mean()
+                    .rename(columns={lat_col: "village_lat", lon_col: "village_lon"})
+                    .reset_index()
+                )
+                village_df = village_df.merge(centroid_df, on="deskel", how="left")
+
+    return village_df
+
+
+def build_journal_domain_profile_df(household_df: pd.DataFrame) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for domain, columns in JOURNAL_PROFILE_DOMAINS.items():
+        existing_columns = [column for column in columns if column in household_df.columns]
+        if not existing_columns:
+            continue
+        score_df = household_df[existing_columns].apply(pd.to_numeric, errors="coerce")
+        domain_score = score_df.mean(axis=1, skipna=True)
+        rows.append(
+            {
+                "Profile Domain": domain,
+                "Mean Score": float(domain_score.mean()) if domain_score.notna().any() else pd.NA,
+                "Median Score": float(domain_score.median()) if domain_score.notna().any() else pd.NA,
+                "Valid Households": int(domain_score.notna().sum()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def build_journal_indicator_profile_df(household_df: pd.DataFrame) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for column, label in JOURNAL_INDICATOR_LABELS.items():
+        if column not in household_df.columns:
+            continue
+        score = pd.to_numeric(household_df[column], errors="coerce")
+        rows.append(
+            {
+                "Indicator": label,
+                "Mean Score": float(score.mean()) if score.notna().any() else pd.NA,
+                "Median Score": float(score.median()) if score.notna().any() else pd.NA,
+                "Valid Households": int(score.notna().sum()),
+            }
+        )
+    return pd.DataFrame(rows).sort_values("Mean Score", ascending=True, kind="mergesort")
+
+
+def build_journal_domain_profile_figure(profile_df: pd.DataFrame) -> go.Figure:
+    plot_df = profile_df.sort_values("Mean Score", ascending=True, kind="mergesort")
+    fig = px.bar(
+        plot_df,
+        x="Mean Score",
+        y="Profile Domain",
+        orientation="h",
+        color="Mean Score",
+        color_continuous_scale=["#b91c1c", "#f59e0b", "#0f766e"],
+        text_auto=".3f",
+        hover_data={"Median Score": ":.3f", "Valid Households": ":,.0f"},
+    )
+    fig.update_layout(
+        title="Descriptive Profile of Household Digital Readiness Domains",
+        xaxis_title="Mean Score",
+        yaxis_title="Profile Domain",
+        coloraxis_showscale=False,
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_xaxes(range=[0, 1])
+    return fig
+
+
+def build_journal_indicator_profile_figure(indicator_df: pd.DataFrame) -> go.Figure:
+    fig = px.bar(
+        indicator_df,
+        x="Mean Score",
+        y="Indicator",
+        orientation="h",
+        color="Mean Score",
+        color_continuous_scale=["#b91c1c", "#f59e0b", "#0f766e"],
+        text_auto=".3f",
+        hover_data={"Median Score": ":.3f", "Valid Households": ":,.0f"},
+    )
+    fig.update_layout(
+        title="Mean Score of Household-Level Digital Inclusion Indicators",
+        xaxis_title="Mean Score",
+        yaxis_title="Indicator",
+        coloraxis_showscale=False,
+        margin=dict(l=20, r=20, t=60, b=20),
+        height=max(520, 30 * max(len(indicator_df), 1) + 160),
+    )
+    fig.update_xaxes(range=[0, 1])
+    return fig
+
+
+def normalize_journal_raw_text_series(series: pd.Series) -> pd.Series:
+    normalized_series = series.astype("string").str.strip()
+    return normalized_series.mask(
+        normalized_series.isna()
+        | normalized_series.eq("")
+        | normalized_series.str.lower().isin({"nan", "none", "<na>", "null"})
+    )
+
+
+def format_journal_category_label(value: Any) -> str:
+    if value is None or pd.isna(value):
+        return "Not Recorded"
+    label = str(value).strip()
+    if not label or label.lower() in {"nan", "none", "<na>", "null"}:
+        return "Not Recorded"
+    return label.title()
+
+
+def build_journal_binary_share_df(rows: list[dict[str, Any]], label_column: str) -> pd.DataFrame:
+    plot_df = pd.DataFrame(rows)
+    if plot_df.empty:
+        return plot_df
+    plot_df["Share"] = plot_df["Households"] / plot_df["Total Households"].replace(0, pd.NA)
+    return plot_df[[label_column, "Households", "Total Households", "Share"]]
+
+
+def build_journal_education_histogram_figure(raw_df: pd.DataFrame) -> go.Figure | None:
+    if "ijazah" not in raw_df.columns:
+        return None
+
+    education_series = normalize_journal_raw_text_series(raw_df["ijazah"]).map(format_journal_category_label)
+    education_counts = education_series.value_counts(dropna=False).reset_index()
+    education_counts.columns = ["Educational Attainment", "Households"]
+    education_counts["Share"] = education_counts["Households"] / max(int(education_counts["Households"].sum()), 1)
+    if education_counts.empty:
+        return None
+
+    fig = px.bar(
+        education_counts.sort_values("Households", ascending=True, kind="mergesort"),
+        x="Households",
+        y="Educational Attainment",
+        orientation="h",
+        color="Households",
+        color_continuous_scale=["#dbeafe", "#2563eb", "#163249"],
+        text="Households",
+        hover_data={"Share": ":.2%"},
+    )
+    fig.update_layout(
+        title="Educational Attainment of Household Heads",
+        xaxis_title="Number of Households",
+        yaxis_title="Educational Attainment",
+        coloraxis_showscale=False,
+        margin=dict(l=20, r=20, t=60, b=20),
+        showlegend=False,
+    )
+    fig.update_xaxes(tickformat=",.0f")
+    return fig
+
+
+def build_journal_device_ownership_bar_figure(raw_df: pd.DataFrame) -> go.Figure | None:
+    total_households = int(len(raw_df))
+    if total_households == 0:
+        return None
+
+    hp_owned = pd.Series(False, index=raw_df.index)
+    if "hp_punya" in raw_df.columns:
+        hp_norm = raw_df["hp_punya"].astype("string").str.strip().str.lower()
+        hp_owned = hp_norm.isin(iid_pipeline.YES_VALUES)
+    if "hp_jumlah_terstandar" in raw_df.columns:
+        hp_owned = hp_owned | pd.to_numeric(raw_df["hp_jumlah_terstandar"], errors="coerce").fillna(0).gt(0)
+    elif "hp_jumlah" in raw_df.columns:
+        hp_owned = hp_owned | pd.to_numeric(raw_df["hp_jumlah"], errors="coerce").fillna(0).gt(0)
+
+    productive_device = pd.Series(False, index=raw_df.index)
+    if "jumlah_perangkat_produktif_rumah_tangga" in raw_df.columns:
+        productive_device = pd.to_numeric(
+            raw_df["jumlah_perangkat_produktif_rumah_tangga"],
+            errors="coerce",
+        ).fillna(0).gt(0)
+    elif "elektronik_rumah" in raw_df.columns:
+        productive_device = raw_df["elektronik_rumah"].apply(
+            lambda value: iid_pipeline.count_keyword_matches(value, iid_pipeline.DIGITAL_PRODUCTIVE_DEVICE_KEYWORDS) > 0
+        )
+
+    two_or_more_phones = pd.Series(False, index=raw_df.index)
+    phone_column = "hp_jumlah_terstandar" if "hp_jumlah_terstandar" in raw_df.columns else "hp_jumlah"
+    if phone_column in raw_df.columns:
+        two_or_more_phones = pd.to_numeric(raw_df[phone_column], errors="coerce").fillna(0).ge(2)
+
+    plot_df = build_journal_binary_share_df(
+        [
+            {
+                "Device Ownership Measure": "Mobile Phone Owned",
+                "Households": int(hp_owned.sum()),
+                "Total Households": total_households,
+            },
+            {
+                "Device Ownership Measure": "Two or More Mobile Phones",
+                "Households": int(two_or_more_phones.sum()),
+                "Total Households": total_households,
+            },
+            {
+                "Device Ownership Measure": "Productive Digital Device Owned",
+                "Households": int(productive_device.sum()),
+                "Total Households": total_households,
+            },
+        ],
+        "Device Ownership Measure",
+    )
+    if plot_df.empty:
+        return None
+    plot_df["Share Label"] = plot_df["Share"].map(lambda value: f"{float(value) * 100:.1f}%")
+
+    fig = px.bar(
+        plot_df,
+        x="Device Ownership Measure",
+        y="Share",
+        color="Share",
+        color_continuous_scale=["#b91c1c", "#f59e0b", "#0f766e"],
+        text="Share Label",
+        hover_data={"Households": ":,.0f", "Total Households": ":,.0f", "Share": ":.2%"},
+    )
+    fig.update_layout(
+        title="Household Device Ownership from Source Data",
+        xaxis_title="Device Ownership Measure",
+        yaxis_title="Share of Households",
+        coloraxis_showscale=False,
+        margin=dict(l=20, r=20, t=60, b=80),
+    )
+    fig.update_xaxes(tickangle=-14, automargin=True)
+    fig.update_yaxes(tickformat=".0%", range=[0, 1])
+    return fig
+
+
+def build_journal_phone_count_histogram_figure(raw_df: pd.DataFrame) -> go.Figure | None:
+    phone_column = "hp_jumlah_terstandar" if "hp_jumlah_terstandar" in raw_df.columns else "hp_jumlah"
+    if phone_column not in raw_df.columns:
+        return None
+    phone_counts = pd.to_numeric(raw_df[phone_column], errors="coerce").fillna(0).clip(lower=0)
+    phone_band = phone_counts.astype(int).clip(upper=5).astype("string")
+    phone_band = phone_band.mask(phone_counts.ge(6), "6+")
+    plot_df = (
+        phone_band.value_counts()
+        .reindex(["0", "1", "2", "3", "4", "5", "6+"], fill_value=0)
+        .rename_axis("Number of Mobile Phones")
+        .reset_index(name="Households")
+    )
+    plot_df["Share"] = plot_df["Households"] / max(int(plot_df["Households"].sum()), 1)
+    fig = px.bar(
+        plot_df,
+        x="Number of Mobile Phones",
+        y="Households",
+        color="Households",
+        color_continuous_scale=["#dbeafe", "#2563eb", "#163249"],
+        text="Households",
+        hover_data={"Share": ":.2%"},
+    )
+    fig.update_layout(
+        title="Distribution of Mobile Phone Counts per Household",
+        xaxis_title="Number of Mobile Phones",
+        yaxis_title="Number of Households",
+        coloraxis_showscale=False,
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    return fig
+
+
+def build_journal_internet_access_pie_figure(raw_df: pd.DataFrame) -> go.Figure | None:
+    if raw_df.empty:
+        return None
+
+    wifi_available = pd.Series(False, index=raw_df.index)
+    if "wifi_teragregasi" in raw_df.columns:
+        wifi_available = raw_df["wifi_teragregasi"].apply(iid_pipeline.count_multivalue_items).gt(0)
+    elif "wifi" in raw_df.columns:
+        wifi_available = raw_df["wifi"].apply(iid_pipeline.count_multivalue_items).gt(0)
+
+    provider_available = pd.Series(False, index=raw_df.index)
+    if "hp_provider_teragregasi" in raw_df.columns:
+        provider_available = raw_df["hp_provider_teragregasi"].apply(iid_pipeline.count_multivalue_items).gt(0)
+    elif "hp_provider" in raw_df.columns:
+        provider_available = raw_df["hp_provider"].apply(iid_pipeline.count_multivalue_items).gt(0)
+
+    access_type = pd.Series("No Recorded Internet Access", index=raw_df.index, dtype="object")
+    access_type.loc[wifi_available & provider_available] = "Wi-Fi and Mobile Data"
+    access_type.loc[wifi_available & ~provider_available] = "Wi-Fi Only"
+    access_type.loc[~wifi_available & provider_available] = "Mobile Data Only"
+
+    distribution_df = (
+        access_type.value_counts()
+        .reindex(
+            [
+                "Wi-Fi and Mobile Data",
+                "Mobile Data Only",
+                "Wi-Fi Only",
+                "No Recorded Internet Access",
+            ],
+            fill_value=0,
+        )
+        .rename_axis("Internet Access Type")
+        .reset_index(name="Households")
+    )
+    distribution_df["Share"] = distribution_df["Households"] / max(int(distribution_df["Households"].sum()), 1)
+    if distribution_df.empty:
+        return None
+
+    internet_colors = {
+        "Wi-Fi and Mobile Data": "#0f766e",
+        "Mobile Data Only": "#2563eb",
+        "Wi-Fi Only": "#14b8a6",
+        "No Recorded Internet Access": "#b91c1c",
+    }
+    fig = px.pie(
+        distribution_df,
+        values="Households",
+        names="Internet Access Type",
+        color="Internet Access Type",
+        color_discrete_map=internet_colors,
+        hole=0.42,
+    )
+    fig.update_layout(
+        title="Recorded Household Internet Access Type",
+        legend_title_text="Internet Access Type",
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        hovertemplate="Access Type: %{label}<br>Households: %{value:,.0f}<br>Share: %{percent}<extra></extra>",
+    )
+    return fig
+
+
+def build_journal_social_participation_bar_figure(raw_df: pd.DataFrame) -> go.Figure | None:
+    total_households = int(len(raw_df))
+    if total_households == 0:
+        return None
+
+    rows: list[dict[str, Any]] = []
+    social_columns = (
+        ("jumlah_organisasi_kepala", "Household Head Organizational Involvement"),
+        ("jumlah_organisasi_anggota", "Household Member Organizational Involvement"),
+        ("jumlah_partisipasi_masyarakat_kepala", "Household Head Community Participation"),
+        ("jumlah_partisipasi_masyarakat_anggota", "Household Member Community Participation"),
+        ("jumlah_partisipasi_kebijakan", "Policy Information Participation"),
+    )
+    for column, label in social_columns:
+        if column not in raw_df.columns:
+            continue
+        count_series = pd.to_numeric(raw_df[column], errors="coerce").fillna(0)
+        rows.append(
+            {
+                "Social Participation Measure": label,
+                "Households": int(count_series.gt(0).sum()),
+                "Total Households": total_households,
+                "Mean Recorded Activities": float(count_series.mean()),
+            }
+        )
+    plot_df = build_journal_binary_share_df(rows, "Social Participation Measure")
+    if plot_df.empty:
+        return None
+    if "Mean Recorded Activities" not in plot_df.columns:
+        plot_df = pd.DataFrame(rows)
+        plot_df["Share"] = plot_df["Households"] / plot_df["Total Households"].replace(0, pd.NA)
+    plot_df["Share Label"] = plot_df["Share"].map(lambda value: f"{float(value) * 100:.1f}%")
+
+    fig = px.bar(
+        plot_df.sort_values("Share", ascending=True, kind="mergesort"),
+        x="Share",
+        y="Social Participation Measure",
+        orientation="h",
+        color="Share",
+        color_continuous_scale=["#b91c1c", "#f59e0b", "#0f766e"],
+        text="Share Label",
+        hover_data={"Households": ":,.0f", "Total Households": ":,.0f", "Share": ":.2%"},
+    )
+    fig.update_layout(
+        title="Recorded Social Participation among Households",
+        xaxis_title="Share of Households with at Least One Recorded Activity",
+        yaxis_title="Social Participation Measure",
+        coloraxis_showscale=False,
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_xaxes(tickformat=".0%", range=[0, 1])
+    return fig
+
+
+def build_journal_category_share_df(household_df: pd.DataFrame) -> pd.DataFrame:
+    counts = (
+        household_df["Digital Inclusion Category"]
+        .value_counts()
+        .reindex(JOURNAL_CATEGORY_ORDER, fill_value=0)
+        .rename_axis("Digital Inclusion Category")
+        .reset_index(name="Households")
+    )
+    total = max(int(counts["Households"].sum()), 1)
+    counts["Share"] = counts["Households"] / total
+    return counts
+
+
+def build_journal_household_histogram_figure(household_df: pd.DataFrame) -> go.Figure:
+    plot_df = household_df.dropna(subset=["iid_rumah_tangga"]).copy()
+    fig = px.histogram(
+        plot_df,
+        x="iid_rumah_tangga",
+        color="Digital Inclusion Category",
+        category_orders={"Digital Inclusion Category": JOURNAL_CATEGORY_ORDER},
+        color_discrete_map=JOURNAL_CATEGORY_COLORS,
+        nbins=40,
+    )
+    fig.update_layout(
+        title="Distribution of the Household Digital Inclusion Index",
+        xaxis_title="Household Digital Inclusion Index",
+        yaxis_title="Number of Households",
+        legend_title_text="Digital Inclusion Category",
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_xaxes(range=[0, 1])
+    return fig
+
+
+def build_journal_category_share_figure(category_df: pd.DataFrame) -> go.Figure:
+    plot_df = category_df.copy()
+    plot_df["Share Label"] = plot_df["Share"].map(lambda value: f"{float(value) * 100:.1f}%")
+    fig = px.bar(
+        plot_df,
+        x="Digital Inclusion Category",
+        y="Share",
+        color="Digital Inclusion Category",
+        category_orders={"Digital Inclusion Category": JOURNAL_CATEGORY_ORDER},
+        color_discrete_map=JOURNAL_CATEGORY_COLORS,
+        text="Share Label",
+        hover_data={"Households": ":,.0f", "Share": ":.2%"},
+    )
+    fig.update_layout(
+        title="Proportion of Households by Digital Inclusion Category",
+        xaxis_title="Digital Inclusion Category",
+        yaxis_title="Share of Households",
+        showlegend=False,
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_yaxes(tickformat=".0%", range=[0, max(float(plot_df["Share"].max()) * 1.18, 0.05)])
+    return fig
+
+
+def build_journal_household_boxplot_figure(
+    household_df: pd.DataFrame,
+    selected_villages: list[str],
+) -> go.Figure:
+    plot_df = add_journal_village_name(household_df)
+    plot_df = plot_df.dropna(subset=["iid_rumah_tangga"])
+    if selected_villages:
+        plot_df = plot_df.loc[plot_df["Village"].isin(selected_villages)].copy()
+    median_order = (
+        plot_df.groupby("Village")["iid_rumah_tangga"]
+        .median()
+        .sort_values(ascending=False)
+        .index.tolist()
+    )
+    fig = px.box(
+        plot_df,
+        x="Village",
+        y="iid_rumah_tangga",
+        category_orders={"Village": median_order},
+        points=False,
+        color_discrete_sequence=["#2563eb"],
+    )
+    fig.update_layout(
+        title="Household Digital Inclusion Scores by Village",
+        xaxis_title="Village",
+        yaxis_title="Household Digital Inclusion Index",
+        margin=dict(l=20, r=20, t=60, b=80),
+        showlegend=False,
+    )
+    fig.update_xaxes(tickangle=-45, automargin=True)
+    fig.update_yaxes(range=[0, 1])
+    return fig
+
+
+def build_journal_vulnerability_summary_df(household_df: pd.DataFrame) -> pd.DataFrame:
+    if household_df.empty:
+        return pd.DataFrame()
+    plot_df = household_df.copy()
+    plot_df["_is_vulnerable"] = plot_df["kategori_iid_rt"].astype(str).isin({"sangat rendah", "rendah"})
+    group_columns = [column for column in ("kode_deskel", "deskel") if column in plot_df.columns]
+    if not group_columns:
+        group_columns = ["Digital Inclusion Category"]
+
+    summary_df = (
+        plot_df.groupby(group_columns, dropna=False)
+        .agg(
+            Households=("iid_rumah_tangga", "size"),
+            Vulnerable_Households=("_is_vulnerable", "sum"),
+            Mean_Household_Index=("iid_rumah_tangga", "mean"),
+        )
+        .reset_index()
+    )
+    summary_df["Vulnerable Share"] = summary_df["Vulnerable_Households"] / summary_df["Households"].clip(lower=1)
+    summary_df = summary_df.rename(
+        columns={
+            "Vulnerable_Households": "Vulnerable Households",
+            "Mean_Household_Index": "Mean Household Index",
+        }
+    )
+
+    for column, label in JOURNAL_DIMENSION_LABELS.items():
+        if column in plot_df.columns:
+            dimension_summary = (
+                plot_df.groupby(group_columns, dropna=False)[column]
+                .mean()
+                .reset_index(name=f"Mean {label}")
+            )
+            summary_df = summary_df.merge(dimension_summary, on=group_columns, how="left")
+
+    if "deskel" in summary_df.columns:
+        summary_df = add_journal_village_name(summary_df)
+    else:
+        summary_df["Village"] = summary_df[group_columns[0]].astype("string")
+
+    return summary_df.sort_values(
+        ["Vulnerable Share", "Vulnerable Households"],
+        ascending=[False, False],
+        kind="mergesort",
+    )
+
+
+def build_journal_vulnerability_figure(
+    vulnerability_df: pd.DataFrame,
+    top_n: int = 15,
+    offset: int = 0,
+) -> go.Figure:
+    plot_df = (
+        vulnerability_df.sort_values(
+            ["Vulnerable Share", "Vulnerable Households"],
+            ascending=[False, False],
+            kind="mergesort",
+        )
+        .iloc[offset : offset + top_n]
+        .sort_values("Vulnerable Share")
+    )
+    plot_df["Vulnerable Share Label"] = plot_df["Vulnerable Share"].map(lambda value: f"{float(value) * 100:.1f}%")
+    fig = px.bar(
+        plot_df,
+        x="Vulnerable Share",
+        y="Village",
+        orientation="h",
+        color="Mean Household Index",
+        color_continuous_scale=["#b91c1c", "#f59e0b", "#0f766e"],
+        text="Vulnerable Share Label",
+        hover_data={
+            "Households": ":,.0f",
+            "Vulnerable Households": ":,.0f",
+            "Mean Household Index": ":.3f",
+            "Vulnerable Share": ":.2%",
+        },
+    )
+    fig.update_layout(
+        title="Villages Ranked by Share of Digitally Vulnerable Households",
+        xaxis_title="Share of Digitally Vulnerable Households",
+        yaxis_title="Village",
+        coloraxis_colorbar_title="Mean Index",
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_xaxes(tickformat=".0%")
+    return fig
+
+
+def build_journal_village_ranking_table(village_df: pd.DataFrame) -> pd.DataFrame:
+    ranking_df = village_df.sort_values("iid_desa", ascending=False, kind="mergesort").copy()
+    ranking_df["Rank"] = range(1, len(ranking_df) + 1)
+    display_columns = [
+        "Rank",
+        "Village",
+        "jumlah_kk",
+        "iid_desa",
+        "ikd_desa",
+        "gini_iid_rumah_tangga",
+        "Within-Village Gini Category",
+    ]
+    display_columns = [column for column in display_columns if column in ranking_df.columns]
+    ranking_df = ranking_df[display_columns].rename(
+        columns={
+            "jumlah_kk": "Households",
+            "iid_desa": "Village Digital Inclusion Index",
+            "ikd_desa": "Village Digital Deprivation Score",
+            "gini_iid_rumah_tangga": "Within-Village Gini",
+        }
+    )
+    return ranking_df
+
+
+def build_journal_village_index_bar_figure(
+    village_df: pd.DataFrame,
+    mode: str,
+    top_n: int = 15,
+    offset: int = 0,
+) -> go.Figure:
+    if mode == "highest":
+        plot_df = (
+            village_df.sort_values(["iid_desa", "Village"], ascending=[False, True], kind="mergesort")
+            .iloc[offset : offset + top_n]
+            .sort_values("iid_desa")
+        )
+        title = "Village Digital Inclusion Index Ranked from Highest"
+        color = "#0f766e"
+    else:
+        plot_df = (
+            village_df.sort_values(["iid_desa", "Village"], ascending=[True, True], kind="mergesort")
+            .iloc[offset : offset + top_n]
+            .sort_values("iid_desa")
+        )
+        title = "Village Digital Inclusion Index Ranked from Lowest"
+        color = "#b91c1c"
+
+    fig = px.bar(
+        plot_df,
+        x="iid_desa",
+        y="Village",
+        orientation="h",
+        text_auto=".3f",
+        color_discrete_sequence=[color],
+        hover_data={"jumlah_kk": ":,.0f", "ikd_desa": ":.3f", "gini_iid_rumah_tangga": ":.3f"},
+    )
+    fig.update_layout(
+        title=title,
+        xaxis_title="Village Digital Inclusion Index",
+        yaxis_title="Village",
+        margin=dict(l=20, r=20, t=60, b=20),
+        showlegend=False,
+    )
+    fig.update_xaxes(range=[0, 1])
+    return fig
+
+
+def build_journal_village_map_figure(village_df: pd.DataFrame) -> go.Figure | None:
+    required_columns = {"village_lat", "village_lon", "iid_desa"}
+    if not required_columns.issubset(village_df.columns):
+        return None
+    plot_df = village_df.dropna(subset=["village_lat", "village_lon", "iid_desa"]).copy()
+    if plot_df.empty:
+        return None
+    plot_df["Village Digital Inclusion Index"] = plot_df["iid_desa"]
+    plot_df["Village Digital Deprivation Score"] = plot_df["ikd_desa"] if "ikd_desa" in plot_df.columns else 1 - plot_df["iid_desa"]
+    plot_df["Households"] = plot_df["jumlah_kk"] if "jumlah_kk" in plot_df.columns else 1
+    fig = px.scatter_mapbox(
+        plot_df,
+        lat="village_lat",
+        lon="village_lon",
+        color="Village Digital Inclusion Index",
+        size="Households",
+        hover_name="Village",
+        hover_data={
+            "Village Digital Inclusion Index": ":.3f",
+            "Village Digital Deprivation Score": ":.3f",
+            "Households": ":,.0f",
+            "village_lat": False,
+            "village_lon": False,
+        },
+        color_continuous_scale=["#b91c1c", "#f59e0b", "#0f766e"],
+        zoom=8,
+        height=560,
+    )
+    fig.update_layout(
+        mapbox_style="open-street-map",
+        title="Spatial Distribution of the Village-Level Digital Inclusion Index",
+        margin=dict(l=10, r=10, t=60, b=10),
+        coloraxis_colorbar_title="Village Index",
+    )
+    return fig
+
+
+def build_journal_dimension_strength_df(village_df: pd.DataFrame) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for column, label in JOURNAL_DIMENSION_LABELS.items():
+        if column not in village_df.columns:
+            continue
+        score = pd.to_numeric(village_df[column], errors="coerce")
+        if not score.notna().any():
+            continue
+        lowest_idx = score.idxmin()
+        highest_idx = score.idxmax()
+        rows.append(
+            {
+                "Dimension": label,
+                "Mean Score": float(score.mean()),
+                "Median Score": float(score.median()),
+                "Lowest Village": village_df.loc[lowest_idx, "Village"],
+                "Lowest Score": float(score.loc[lowest_idx]),
+                "Highest Village": village_df.loc[highest_idx, "Village"],
+                "Highest Score": float(score.loc[highest_idx]),
+            }
+        )
+    return pd.DataFrame(rows).sort_values("Mean Score", ascending=False, kind="mergesort")
+
+
+def build_journal_dimension_bar_figure(strength_df: pd.DataFrame) -> go.Figure:
+    plot_df = strength_df.sort_values("Mean Score", ascending=True, kind="mergesort")
+    fig = px.bar(
+        plot_df,
+        x="Mean Score",
+        y="Dimension",
+        orientation="h",
+        color="Mean Score",
+        color_continuous_scale=["#b91c1c", "#f59e0b", "#0f766e"],
+        text_auto=".3f",
+        hover_data={"Median Score": ":.3f", "Lowest Village": True, "Lowest Score": ":.3f"},
+    )
+    fig.update_layout(
+        title="Average Dimensional Profile of Village Digital Inclusion",
+        xaxis_title="Mean Score",
+        yaxis_title="Dimension",
+        coloraxis_showscale=False,
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_xaxes(range=[0, 1])
+    return fig
+
+
+def build_journal_dimension_radar_figure(
+    village_df: pd.DataFrame,
+    selected_villages: list[str],
+) -> go.Figure:
+    dimension_columns = [column for column in JOURNAL_DIMENSION_LABELS if column in village_df.columns]
+    theta = [JOURNAL_DIMENSION_LABELS[column] for column in dimension_columns]
+    fig = go.Figure()
+    for village in selected_villages:
+        row = village_df.loc[village_df["Village"].eq(village)].head(1)
+        if row.empty:
+            continue
+        values = [float(pd.to_numeric(row[column], errors="coerce").iloc[0]) for column in dimension_columns]
+        fig.add_trace(
+            go.Scatterpolar(
+                r=[*values, values[0]],
+                theta=[*theta, theta[0]],
+                fill="toself",
+                name=village,
+                opacity=0.76,
+            )
+        )
+    fig.update_layout(
+        title="Radar Chart of Digital Inclusion Dimensions across Selected Villages",
+        polar=dict(radialaxis=dict(visible=True, range=[0, 1], tickformat=".1f")),
+        legend_title_text="Village",
+        margin=dict(l=20, r=20, t=70, b=20),
+        height=560,
+    )
+    return fig
+
+
+def build_journal_dimension_heatmap_figure(
+    village_df: pd.DataFrame,
+    limit: int = 30,
+    offset: int = 0,
+) -> go.Figure:
+    dimension_columns = [column for column in JOURNAL_DIMENSION_LABELS if column in village_df.columns]
+    plot_df = village_df.dropna(subset=dimension_columns, how="all").copy()
+    if "iid_desa" in plot_df.columns:
+        plot_df = plot_df.sort_values(["iid_desa", "Village"], ascending=[True, True], kind="mergesort")
+    else:
+        plot_df = plot_df.sort_values("Village", ascending=True, kind="mergesort")
+    plot_df = plot_df.iloc[offset : offset + limit]
+    z_values = plot_df[dimension_columns].apply(pd.to_numeric, errors="coerce").to_numpy()
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=z_values,
+            x=[JOURNAL_DIMENSION_LABELS[column] for column in dimension_columns],
+            y=plot_df["Village"].tolist(),
+            zmin=0,
+            zmax=1,
+            colorscale=[[0, "#b91c1c"], [0.5, "#f59e0b"], [1, "#0f766e"]],
+            colorbar=dict(title="Dimension Score"),
+            hovertemplate="Village: %{y}<br>Dimension: %{x}<br>Score: %{z:.3f}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        title="Heatmap of Village Digital Inclusion Dimensions",
+        xaxis_title="Dimension",
+        yaxis_title="Village",
+        margin=dict(l=20, r=20, t=60, b=20),
+        height=max(460, 28 * max(len(plot_df), 1) + 150),
+    )
+    fig.update_xaxes(side="top")
+    fig.update_yaxes(automargin=True)
+    return fig
+
+
+def build_journal_lagging_dimension_table(village_df: pd.DataFrame, bottom_n: int = 3) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for column, label in JOURNAL_DIMENSION_LABELS.items():
+        if column not in village_df.columns:
+            continue
+        dimension_df = village_df.dropna(subset=[column]).nsmallest(bottom_n, column).copy()
+        for rank, (_, row) in enumerate(dimension_df.iterrows(), start=1):
+            rows.append(
+                {
+                    "Dimension": label,
+                    "Lag Rank": rank,
+                    "Village": row["Village"],
+                    "Dimension Score": row[column],
+                    "Village Digital Inclusion Index": row.get("iid_desa", pd.NA),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def build_journal_deprivation_scatter_figure(village_df: pd.DataFrame) -> go.Figure:
+    plot_df = village_df.dropna(subset=["iid_desa", "gini_iid_rumah_tangga"]).copy()
+    if "ikd_desa" not in plot_df.columns:
+        plot_df["ikd_desa"] = 1 - plot_df["iid_desa"]
+    plot_df["Village Digital Inclusion Index"] = plot_df["iid_desa"]
+    plot_df["Village Digital Deprivation Score"] = plot_df["ikd_desa"]
+    plot_df["Within-Village Gini"] = plot_df["gini_iid_rumah_tangga"]
+    plot_df["Households"] = plot_df["jumlah_kk"] if "jumlah_kk" in plot_df.columns else 1
+    fig = px.scatter(
+        plot_df,
+        x="Village Digital Inclusion Index",
+        y="Within-Village Gini",
+        size="Households",
+        color="Village Digital Deprivation Score",
+        hover_name="Village",
+        hover_data={
+            "Village Digital Inclusion Index": ":.3f",
+            "Village Digital Deprivation Score": ":.3f",
+            "Within-Village Gini": ":.3f",
+            "Households": ":,.0f",
+        },
+        color_continuous_scale=["#0f766e", "#f59e0b", "#b91c1c"],
+    )
+    mean_index = float(plot_df["Village Digital Inclusion Index"].mean())
+    mean_gini = float(plot_df["Within-Village Gini"].mean())
+    fig.add_vline(
+        x=mean_index,
+        line_dash="dash",
+        line_color="#475569",
+        annotation_text="Mean Village Index",
+        annotation_position="top left",
+    )
+    fig.add_hline(
+        y=mean_gini,
+        line_dash="dash",
+        line_color="#475569",
+        annotation_text="Mean Within-Village Gini",
+        annotation_position="bottom right",
+    )
+    fig.update_layout(
+        title="Village Mean Index and Within-Village Inequality",
+        xaxis_title="Village Digital Inclusion Index",
+        yaxis_title="Within-Village Gini of Household Scores",
+        coloraxis_colorbar_title="Deprivation Score",
+        margin=dict(l=20, r=20, t=70, b=20),
+    )
+    return fig
+
+
+def build_journal_deprivation_bar_figure(
+    village_df: pd.DataFrame,
+    top_n: int = 15,
+    offset: int = 0,
+) -> go.Figure:
+    plot_df = village_df.copy()
+    if "ikd_desa" not in plot_df.columns:
+        plot_df["ikd_desa"] = 1 - plot_df["iid_desa"]
+    plot_df = (
+        plot_df.sort_values(["ikd_desa", "gini_iid_rumah_tangga"], ascending=[False, False], kind="mergesort")
+        .iloc[offset : offset + top_n]
+        .sort_values("ikd_desa")
+    )
+    fig = px.bar(
+        plot_df,
+        x="ikd_desa",
+        y="Village",
+        orientation="h",
+        color="gini_iid_rumah_tangga",
+        color_continuous_scale=["#0f766e", "#f59e0b", "#b91c1c"],
+        text_auto=".3f",
+        hover_data={"iid_desa": ":.3f", "gini_iid_rumah_tangga": ":.3f", "jumlah_kk": ":,.0f"},
+    )
+    fig.update_layout(
+        title="Highest Village Digital Deprivation Scores",
+        xaxis_title="Village Digital Deprivation Score",
+        yaxis_title="Village",
+        coloraxis_colorbar_title="Within-Village Gini",
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    fig.update_xaxes(range=[0, max(float(plot_df["ikd_desa"].max()) * 1.15, 0.05)])
+    return fig
+
+
+def build_journal_deprivation_priority_table(village_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    priority_df = village_df.copy()
+    if "ikd_desa" not in priority_df.columns:
+        priority_df["ikd_desa"] = 1 - priority_df["iid_desa"]
+    high_gini_threshold = priority_df["gini_iid_rumah_tangga"].quantile(0.67)
+    high_gini_mask = priority_df["gini_iid_rumah_tangga"].ge(high_gini_threshold)
+    if "Within-Village Gini Category" in priority_df.columns:
+        high_gini_mask = high_gini_mask | priority_df["Within-Village Gini Category"].astype(str).str.lower().eq("high")
+    moderate_high_inequality_df = priority_df.loc[
+        priority_df["iid_desa"].between(0.4, 0.6, inclusive="both") & high_gini_mask
+    ].copy()
+    priority_df = priority_df.sort_values(
+        ["ikd_desa", "gini_iid_rumah_tangga"],
+        ascending=[False, False],
+        kind="mergesort",
+    )
+
+    display_columns = [
+        "Village",
+        "jumlah_kk",
+        "iid_desa",
+        "ikd_desa",
+        "gini_iid_rumah_tangga",
+        "Within-Village Gini Category",
+    ]
+    display_columns = [column for column in display_columns if column in priority_df.columns]
+    renamed_columns = {
+        "jumlah_kk": "Households",
+        "iid_desa": "Village Digital Inclusion Index",
+        "ikd_desa": "Village Digital Deprivation Score",
+        "gini_iid_rumah_tangga": "Within-Village Gini",
+    }
+    priority_display_df = priority_df[display_columns].rename(columns=renamed_columns)
+    moderate_display_df = moderate_high_inequality_df[display_columns].rename(columns=renamed_columns)
+    return priority_display_df, moderate_display_df
 
 
 def render_hero(meta: dict[str, Any]) -> None:
@@ -2493,6 +3756,400 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     st.dataframe(desa_df.head(100), use_container_width=True, hide_index=True)
 
 
+def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
+    household_df = prepare_journal_household_df(tables)
+    raw_profile_df = prepare_journal_raw_profile_df(detail_df, household_df)
+    village_df = prepare_journal_village_df(tables, household_df)
+
+    if household_df.empty and village_df.empty:
+        st.warning("The journal analysis page requires household and village index tables.")
+        return
+
+    st.markdown("<span class='pill-note'>Journal-oriented analysis</span>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-note'>This page uses formal English labels for charts, tables, and visual annotations so the outputs can be adapted for academic reporting.</div>",
+        unsafe_allow_html=True,
+    )
+
+    total_households = int(len(household_df))
+    total_villages = int(len(village_df))
+    mean_household_index = (
+        pd.to_numeric(household_df.get("iid_rumah_tangga"), errors="coerce").mean()
+        if not household_df.empty
+        else pd.NA
+    )
+    mean_village_index = (
+        pd.to_numeric(village_df.get("iid_desa"), errors="coerce").mean()
+        if not village_df.empty
+        else pd.NA
+    )
+    vulnerable_share = pd.NA
+    if not household_df.empty and "kategori_iid_rt" in household_df.columns:
+        vulnerable_share = household_df["kategori_iid_rt"].astype(str).isin({"sangat rendah", "rendah"}).mean()
+
+    overview_cols = st.columns(5)
+    overview_cols[0].metric("Valid Households", format_journal_number(total_households, 0))
+    overview_cols[1].metric("Villages", format_journal_number(total_villages, 0))
+    overview_cols[2].metric("Mean Household Index", format_journal_number(mean_household_index))
+    overview_cols[3].metric("Mean Village Index", format_journal_number(mean_village_index))
+    overview_cols[4].metric("Digitally Vulnerable Share", format_journal_percent(vulnerable_share))
+
+    st.markdown("### 1. Descriptive Profile of Households and Villages")
+    if household_df.empty:
+        st.info("Household-level records are not available for the descriptive profile.")
+    else:
+        st.markdown("#### Raw Household Characteristics")
+        st.caption("These visualizations are derived from the source household variables, not from aggregate index scores.")
+        characteristic_figures = [
+            build_journal_education_histogram_figure(raw_profile_df),
+            build_journal_device_ownership_bar_figure(raw_profile_df),
+            build_journal_phone_count_histogram_figure(raw_profile_df),
+            build_journal_internet_access_pie_figure(raw_profile_df),
+            build_journal_social_participation_bar_figure(raw_profile_df),
+        ]
+        characteristic_figures = [figure for figure in characteristic_figures if figure is not None]
+        if characteristic_figures:
+            for index in range(0, len(characteristic_figures), 2):
+                characteristic_cols = st.columns(2)
+                for chart_offset, (column_container, figure) in enumerate(
+                    zip(characteristic_cols, characteristic_figures[index : index + 2], strict=False),
+                    start=0,
+                ):
+                    column_container.plotly_chart(
+                        figure,
+                        use_container_width=True,
+                        key=f"journal_raw_household_characteristic_{index + chart_offset}",
+                    )
+        else:
+            st.info("Source household variables are not available for raw descriptive visualization.")
+
+        with st.expander("Scored Index Component Summary", expanded=False):
+            domain_profile_df = build_journal_domain_profile_df(household_df)
+            indicator_profile_df = build_journal_indicator_profile_df(household_df)
+            if not domain_profile_df.empty:
+                profile_cols = st.columns([0.95, 1.05])
+                profile_cols[0].plotly_chart(
+                    build_journal_domain_profile_figure(domain_profile_df),
+                    use_container_width=True,
+                    key="journal_domain_profile",
+                )
+                if not indicator_profile_df.empty:
+                    profile_cols[1].plotly_chart(
+                        build_journal_indicator_profile_figure(indicator_profile_df),
+                        use_container_width=True,
+                        key="journal_indicator_profile",
+                    )
+                    st.dataframe(
+                        format_journal_dataframe(
+                            indicator_profile_df,
+                            integer_columns=("Valid Households",),
+                            score_columns=("Mean Score", "Median Score"),
+                        ),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+    st.markdown("### 2. Distribution of Household Digital Inclusion")
+    if household_df.empty:
+        st.info("Household-level index scores are not available.")
+    else:
+        category_share_df = build_journal_category_share_df(household_df)
+        distribution_cols = st.columns(2)
+        distribution_cols[0].plotly_chart(
+            build_journal_household_histogram_figure(household_df),
+            use_container_width=True,
+            key="journal_household_histogram",
+        )
+        distribution_cols[1].plotly_chart(
+            build_journal_category_share_figure(category_share_df),
+            use_container_width=True,
+            key="journal_category_share",
+        )
+
+        household_labeled_df = add_journal_village_name(household_df)
+        village_options = sorted(household_labeled_df["Village"].dropna().astype(str).unique().tolist())
+        if village_options:
+            box_start, box_end, _ = render_journal_page_selector(
+                st,
+                "Household boxplot village page",
+                len(village_options),
+                key="journal_box_village_page",
+            )
+            selected_box_villages = village_options[box_start:box_end]
+            st.plotly_chart(
+                build_journal_household_boxplot_figure(household_df, selected_box_villages),
+                use_container_width=True,
+                key="journal_household_boxplot",
+            )
+
+        vulnerability_df = build_journal_vulnerability_summary_df(household_df)
+        if not vulnerability_df.empty:
+            vulnerability_start, vulnerability_end, _ = render_journal_page_selector(
+                st,
+                "Digitally vulnerable household village page",
+                len(vulnerability_df),
+                key="journal_vulnerability_page",
+            )
+            st.plotly_chart(
+                build_journal_vulnerability_figure(
+                    vulnerability_df,
+                    top_n=JOURNAL_VILLAGE_PAGE_SIZE,
+                    offset=vulnerability_start,
+                ),
+                use_container_width=True,
+                key="journal_vulnerability_villages",
+            )
+            vulnerability_columns = [
+                "Village",
+                "Households",
+                "Vulnerable Households",
+                "Vulnerable Share",
+                "Mean Household Index",
+                *[column for column in vulnerability_df.columns if column.startswith("Mean ") and column != "Mean Household Index"],
+            ]
+            vulnerability_columns = [column for column in vulnerability_columns if column in vulnerability_df.columns]
+            st.dataframe(
+                format_journal_dataframe(
+                    vulnerability_df[vulnerability_columns].iloc[vulnerability_start:vulnerability_end],
+                    percent_columns=("Vulnerable Share",),
+                    integer_columns=("Households", "Vulnerable Households"),
+                    score_columns=tuple(column for column in vulnerability_columns if column.startswith("Mean ")),
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    st.markdown("### 3. Village-Level Digital Inclusion Index")
+    if village_df.empty:
+        st.info("Village-level index records are not available.")
+    else:
+        village_sorted_df = village_df.sort_values("iid_desa", ascending=False, kind="mergesort")
+        highest_village = village_sorted_df.head(1)
+        lowest_village = village_sorted_df.tail(1)
+        village_metric_cols = st.columns(4)
+        village_metric_cols[0].metric(
+            "Highest Village Index",
+            format_journal_number(highest_village["iid_desa"].iloc[0]) if not highest_village.empty else "-",
+            highest_village["Village"].iloc[0] if not highest_village.empty else None,
+        )
+        village_metric_cols[1].metric(
+            "Lowest Village Index",
+            format_journal_number(lowest_village["iid_desa"].iloc[0]) if not lowest_village.empty else "-",
+            lowest_village["Village"].iloc[0] if not lowest_village.empty else None,
+        )
+        village_metric_cols[2].metric(
+            "Standard Deviation",
+            format_journal_number(pd.to_numeric(village_df["iid_desa"], errors="coerce").std()),
+        )
+        village_metric_cols[3].metric(
+            "Index Range",
+            format_journal_number(
+                pd.to_numeric(village_df["iid_desa"], errors="coerce").max()
+                - pd.to_numeric(village_df["iid_desa"], errors="coerce").min()
+            ),
+        )
+
+        ranking_start, ranking_end, _ = render_journal_page_selector(
+            st,
+            "Village ranking page",
+            len(village_df),
+            key="journal_village_ranking_page",
+        )
+
+        village_chart_cols = st.columns(2)
+        village_chart_cols[0].plotly_chart(
+            build_journal_village_index_bar_figure(
+                village_df,
+                "highest",
+                top_n=JOURNAL_VILLAGE_PAGE_SIZE,
+                offset=ranking_start,
+            ),
+            use_container_width=True,
+            key="journal_highest_village_index",
+        )
+        village_chart_cols[1].plotly_chart(
+            build_journal_village_index_bar_figure(
+                village_df,
+                "lowest",
+                top_n=JOURNAL_VILLAGE_PAGE_SIZE,
+                offset=ranking_start,
+            ),
+            use_container_width=True,
+            key="journal_lowest_village_index",
+        )
+
+        ranking_table_df = build_journal_village_ranking_table(village_df)
+        st.dataframe(
+            format_journal_dataframe(
+                ranking_table_df.iloc[ranking_start:ranking_end],
+                integer_columns=("Rank", "Households"),
+                score_columns=(
+                    "Village Digital Inclusion Index",
+                    "Village Digital Deprivation Score",
+                    "Within-Village Gini",
+                ),
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        map_figure = build_journal_village_map_figure(village_df)
+        if map_figure is not None:
+            st.plotly_chart(map_figure, use_container_width=True, key="journal_village_index_map")
+        else:
+            st.info("Village centroid coordinates are not available for the spatial map.")
+
+    st.markdown("### 4. Dimensional Profile of Digital Inclusion")
+    if village_df.empty:
+        st.info("Village-level dimension scores are not available.")
+    else:
+        dimension_strength_df = build_journal_dimension_strength_df(village_df)
+        if dimension_strength_df.empty:
+            st.info("Dimension scores are not available in the village-level index table.")
+        else:
+            strongest_dimension = dimension_strength_df.sort_values("Mean Score", ascending=False).head(1)
+            weakest_dimension = dimension_strength_df.sort_values("Mean Score", ascending=True).head(1)
+            dimension_metric_cols = st.columns(2)
+            dimension_metric_cols[0].metric(
+                "Strongest Dimension",
+                strongest_dimension["Dimension"].iloc[0],
+                format_journal_number(strongest_dimension["Mean Score"].iloc[0]),
+            )
+            dimension_metric_cols[1].metric(
+                "Weakest Dimension",
+                weakest_dimension["Dimension"].iloc[0],
+                format_journal_number(weakest_dimension["Mean Score"].iloc[0]),
+            )
+
+            dimension_cols = st.columns([0.9, 1.1])
+            dimension_cols[0].plotly_chart(
+                build_journal_dimension_bar_figure(dimension_strength_df),
+                use_container_width=True,
+                key="journal_dimension_strength",
+            )
+            village_options = village_df.sort_values("iid_desa", ascending=False, kind="mergesort")["Village"].tolist()
+            default_radar_villages = list(
+                dict.fromkeys(
+                    [
+                        *village_df.nlargest(2, "iid_desa")["Village"].tolist(),
+                        *village_df.nsmallest(2, "iid_desa")["Village"].tolist(),
+                    ]
+                )
+            )
+            selected_radar_villages = dimension_cols[1].multiselect(
+                "Villages displayed in the radar chart",
+                options=village_options,
+                default=[village for village in default_radar_villages if village in village_options],
+                key="journal_radar_villages",
+            )
+            if len(selected_radar_villages) > 6:
+                dimension_cols[1].warning("Only the first six selected villages are displayed to preserve readability.")
+                selected_radar_villages = selected_radar_villages[:6]
+            if selected_radar_villages:
+                dimension_cols[1].plotly_chart(
+                    build_journal_dimension_radar_figure(village_df, selected_radar_villages),
+                    use_container_width=True,
+                    key="journal_dimension_radar",
+                )
+
+            heatmap_dimension_columns = [column for column in JOURNAL_DIMENSION_LABELS if column in village_df.columns]
+            heatmap_village_count = int(village_df.dropna(subset=heatmap_dimension_columns, how="all").shape[0])
+            heatmap_start, _, _ = render_journal_page_selector(
+                st,
+                "Dimension heatmap village page",
+                heatmap_village_count,
+                key="journal_dimension_heatmap_page",
+            )
+            st.plotly_chart(
+                build_journal_dimension_heatmap_figure(
+                    village_df,
+                    limit=JOURNAL_VILLAGE_PAGE_SIZE,
+                    offset=heatmap_start,
+                ),
+                use_container_width=True,
+                key="journal_dimension_heatmap",
+            )
+
+            lagging_dimension_df = build_journal_lagging_dimension_table(village_df, bottom_n=3)
+            if not lagging_dimension_df.empty:
+                st.dataframe(
+                    format_journal_dataframe(
+                        lagging_dimension_df,
+                        integer_columns=("Lag Rank",),
+                        score_columns=("Dimension Score", "Village Digital Inclusion Index"),
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+    st.markdown("### 5. Digital Deprivation and Within-Village Inequality")
+    if village_df.empty or not {"iid_desa", "gini_iid_rumah_tangga"}.issubset(village_df.columns):
+        st.info("Village-level deprivation and Gini statistics are not available.")
+    else:
+        st.caption(
+            "A village with a moderate mean index should not automatically be interpreted as inclusive when within-village inequality is high, because the mean may conceal digitally deprived households."
+        )
+        deprivation_start, deprivation_end, _ = render_journal_page_selector(
+            st,
+            "Digital deprivation village page",
+            len(village_df),
+            key="journal_deprivation_page",
+        )
+        deprivation_cols = st.columns(2)
+        deprivation_cols[0].plotly_chart(
+            build_journal_deprivation_scatter_figure(village_df),
+            use_container_width=True,
+            key="journal_deprivation_gini_scatter",
+        )
+        deprivation_cols[1].plotly_chart(
+            build_journal_deprivation_bar_figure(
+                village_df,
+                top_n=JOURNAL_VILLAGE_PAGE_SIZE,
+                offset=deprivation_start,
+            ),
+            use_container_width=True,
+            key="journal_deprivation_bar",
+        )
+        priority_df, moderate_high_inequality_df = build_journal_deprivation_priority_table(village_df)
+        st.markdown("#### Priority Villages by Digital Deprivation and Internal Inequality")
+        st.dataframe(
+            format_journal_dataframe(
+                priority_df.iloc[deprivation_start:deprivation_end],
+                integer_columns=("Households",),
+                score_columns=(
+                    "Village Digital Inclusion Index",
+                    "Village Digital Deprivation Score",
+                    "Within-Village Gini",
+                ),
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.markdown("#### Moderate-Index Villages with High Internal Inequality")
+        if moderate_high_inequality_df.empty:
+            st.info("No moderate-index villages meet the high internal inequality criterion in the current data.")
+        else:
+            moderate_start, moderate_end, _ = render_journal_page_selector(
+                st,
+                "Moderate-index high-inequality village page",
+                len(moderate_high_inequality_df),
+                key="journal_moderate_inequality_page",
+            )
+            st.dataframe(
+                format_journal_dataframe(
+                    moderate_high_inequality_df.iloc[moderate_start:moderate_end],
+                    integer_columns=("Households",),
+                    score_columns=(
+                        "Village Digital Inclusion Index",
+                        "Village Digital Deprivation Score",
+                        "Within-Village Gini",
+                    ),
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+
 def build_dimension_determinant_figure(determinant_df: pd.DataFrame) -> go.Figure:
     return build_ranked_red_bar_figure(
         determinant_df,
@@ -2858,8 +4515,16 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-    tab_ringkasan, tab_rt, tab_desa, tab_analisis, tab_variabel, tab_tabel = st.tabs(
-        ["Ringkasan", "Rumah Tangga", "Desa", "Analisis Lanjutan", "Penjelasan Variabel", "Eksplorasi Tabel"]
+    tab_ringkasan, tab_rt, tab_journal, tab_desa, tab_analisis, tab_variabel, tab_tabel = st.tabs(
+        [
+            "Ringkasan",
+            "Rumah Tangga",
+            "Journal Analysis",
+            "Desa",
+            "Analisis Lanjutan",
+            "Penjelasan Variabel",
+            "Eksplorasi Tabel",
+        ]
     )
 
     with tab_ringkasan:
@@ -2868,6 +4533,9 @@ def main() -> None:
 
     with tab_rt:
         render_household_tab(tables, household_detail_df)
+
+    with tab_journal:
+        render_journal_analysis_tab(tables, household_detail_df)
 
     with tab_desa:
         render_desa_tab(tables, household_detail_df)
