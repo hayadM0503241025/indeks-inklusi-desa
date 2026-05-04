@@ -6,8 +6,18 @@ Dashboard Streamlit untuk pengolahan dan visualisasi Indeks Inklusi Digital Desa
 
 ```bash
 pip install -r requirements.txt
-streamlit run dashboard_streamlit.py
+streamlit run streamlit_app.py
 ```
+
+## Deploy ke Streamlit Community Cloud
+
+Gunakan pengaturan berikut saat membuat atau mengubah app:
+
+- Repository: `hayadM0503241025/indeks-inklusi-desa`
+- Branch: `main`
+- Main file path: `streamlit_app.py`
+
+File `streamlit_app.py` adalah entrypoint deploy yang menjalankan dashboard utama di `dashboard_streamlit.py`.
 
 Data besar disimpan sebagai Parquet terkompresi agar tetap ringan untuk GitHub. Dashboard dapat membaca `.csv`, `.xlsx`, `.xls`, dan `.parquet`.
 
