@@ -1141,12 +1141,16 @@ def ensure_advanced_analysis_tables(tables: dict[str, pd.DataFrame]) -> dict[str
         "analisis_sensitivitas_oat",
         "analisis_shapley_variabel",
     )
+    if all(key in tables and not tables[key].empty for key in analysis_keys):
+        return tables
+
     desa_df = tables.get("indeks_desa", pd.DataFrame())
     variable_df = tables.get("penjelasan_variabel", pd.DataFrame())
     derived_tables = iid_pipeline.build_advanced_analysis_tables(desa_df, variable_df)
     enriched_tables = tables.copy()
     for key in analysis_keys:
-        enriched_tables[key] = derived_tables.get(key, pd.DataFrame())
+        if key not in enriched_tables or enriched_tables[key].empty:
+            enriched_tables[key] = derived_tables.get(key, pd.DataFrame())
     return enriched_tables
 
 
