@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import numbers
+import re
+from html import escape
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -482,6 +484,28 @@ DISPLAY_TEXT_REPLACEMENTS = (
     ("jumlah anggota usia 7-25 tahun yang sedang sekolah / jumlah anggota usia 7-25 tahun", "members aged 7-25 who are currently attending school divided by all members aged 7-25"),
 )
 
+MISSING_TEXT_VALUES = {"", "nan", "none", "<na>", "null"}
+NAME_WORD_PATTERN = re.compile(r"[^\W\d_]+", re.UNICODE)
+VILLAGE_DISPLAY_NAME_COLUMNS = {
+    "deskel",
+    "deskel_cakupan",
+    "label_desa",
+    "Village",
+    "Lowest Village",
+    "Highest Village",
+}
+PERSON_DISPLAY_NAME_COLUMNS = {
+    "nama",
+    "nama_kk_subjek",
+    "label_kk",
+    "nama_kontributor_utama",
+    "Name",
+    "Household Label",
+    "Household Head or Subject",
+    "Leading Contributor Name",
+}
+DISPLAY_NAME_COLUMNS = VILLAGE_DISPLAY_NAME_COLUMNS | PERSON_DISPLAY_NAME_COLUMNS
+
 
 st.set_page_config(
     page_title="Digital Inclusion Dashboard",
@@ -763,6 +787,56 @@ def inject_styles() -> None:
             color: var(--text-soft);
             font-size: 0.9rem;
         }
+        .journal-overview-table-wrap {
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 14px;
+            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+            margin: 0.25rem 0 1.25rem 0;
+            overflow: hidden;
+        }
+        .journal-overview-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .journal-overview-table thead th {
+            background: #163249;
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0;
+            padding: 0.78rem 1rem;
+            text-align: left;
+            text-transform: uppercase;
+        }
+        .journal-overview-table tbody td {
+            border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+            color: #315066;
+            font-size: 0.94rem;
+            padding: 0.86rem 1rem;
+            vertical-align: middle;
+        }
+        .journal-overview-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+        .journal-overview-table tbody tr:nth-child(even) {
+            background: rgba(15, 118, 110, 0.045);
+        }
+        .journal-overview-metric {
+            color: #163249;
+            font-weight: 800;
+            min-width: 14rem;
+        }
+        .journal-overview-value {
+            color: #0f766e !important;
+            font-size: 1.32rem !important;
+            font-weight: 850;
+            white-space: nowrap;
+        }
+        .journal-overview-note {
+            color: var(--text-soft) !important;
+            line-height: 1.45;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -840,6 +914,59 @@ def format_inequality_direction_label(value: Any) -> Any:
     return INEQUALITY_DIRECTION_LABELS.get(text, text)
 
 
+def _is_missing_display_value(value: Any) -> bool:
+    try:
+        if bool(pd.isna(value)):
+            return True
+    except (TypeError, ValueError):
+        pass
+    if not isinstance(value, str):
+        return False
+    return value.strip().lower() in MISSING_TEXT_VALUES
+
+
+def _format_name_word(match: re.Match[str]) -> str:
+    word = match.group(0)
+    if word.isupper() and len(word) <= 3:
+        return word
+    return word[:1].upper() + word[1:].lower()
+
+
+def format_title_case_display_name(value: Any) -> Any:
+    if _is_missing_display_value(value):
+        return value
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    return NAME_WORD_PATTERN.sub(_format_name_word, text)
+
+
+def format_person_display_name(value: Any) -> Any:
+    formatted_value = format_title_case_display_name(value)
+    if not isinstance(formatted_value, str):
+        return formatted_value
+    if " | " not in formatted_value:
+        return formatted_value
+    name_part, id_part = str(value).strip().split(" | ", 1)
+    formatted_name = format_title_case_display_name(name_part)
+    return f"{formatted_name} | {id_part.strip()}"
+
+
+def format_display_name_value(value: Any, column_name: str | None = None) -> Any:
+    if column_name in PERSON_DISPLAY_NAME_COLUMNS:
+        return format_person_display_name(value)
+    if column_name in VILLAGE_DISPLAY_NAME_COLUMNS:
+        return format_title_case_display_name(value)
+    return value
+
+
+def apply_display_name_casing(df: pd.DataFrame) -> pd.DataFrame:
+    cased_df = df.copy()
+    for column in DISPLAY_NAME_COLUMNS.intersection(cased_df.columns):
+        cased_df[column] = cased_df[column].map(lambda value, col=column: format_display_name_value(value, col))
+    return cased_df
+
+
 def translate_display_text(value: Any, column_name: str | None = None) -> Any:
     if value is None or pd.isna(value):
         return value
@@ -847,6 +974,8 @@ def translate_display_text(value: Any, column_name: str | None = None) -> Any:
         return value
 
     text = value.strip()
+    if column_name in DISPLAY_NAME_COLUMNS:
+        return format_display_name_value(text, column_name)
     if column_name in {"kategori_iid_rt", "Digital Inclusion Category"}:
         return format_iid_category_label(text)
     if column_name in {"interpretasi_gini", "interpretasi_gini_cakupan"}:
@@ -1056,6 +1185,7 @@ def load_output_bundle_cached(output_dir_str: str, folder_signature: str) -> dic
     if "penjelasan_variabel" in tables:
         tables["penjelasan_variabel"] = normalize_variable_explanation_table(tables["penjelasan_variabel"])
     tables = ensure_advanced_analysis_tables(tables)
+    tables = {key: apply_display_name_casing(df) for key, df in tables.items()}
 
     workbook_path = output_dir / "hasil_olahdata.xlsx"
     meta = {
@@ -1238,7 +1368,7 @@ def load_household_detail_cached(
     ):
         if column in detail_df.columns:
             detail_df[column] = pd.to_numeric(detail_df[column], errors="coerce")
-    return detail_df
+    return apply_display_name_casing(detail_df)
 
 
 def resolve_household_detail_df(meta: dict[str, Any], tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -1299,10 +1429,14 @@ def build_household_profile_lookup(household_df: pd.DataFrame, detail_df: pd.Dat
             profile_df[column] = pd.NA
         base_series = profile_df[column].astype("string").str.strip()
         base_series = base_series.mask(base_series.isna() | base_series.eq("") | base_series.str.lower().eq("nan"))
+        if column in PERSON_DISPLAY_NAME_COLUMNS:
+            base_series = base_series.map(lambda value, col=column: format_display_name_value(value, col))
         detail_column = f"{column}_detail"
         if detail_column in profile_df.columns:
             detail_series = profile_df[detail_column].astype("string").str.strip()
             detail_series = detail_series.mask(detail_series.isna() | detail_series.eq("") | detail_series.str.lower().eq("nan"))
+            if column in PERSON_DISPLAY_NAME_COLUMNS:
+                detail_series = detail_series.map(lambda value, col=column: format_display_name_value(value, col))
             profile_df[column] = base_series.fillna(detail_series)
         else:
             profile_df[column] = base_series
@@ -1319,10 +1453,12 @@ def build_household_profile_lookup(household_df: pd.DataFrame, detail_df: pd.Dat
     fallback_label = profile_df["family_id"].astype("string")
     subjek_series = profile_df["subjek"].astype("string").str.strip()
     subjek_series = subjek_series.mask(subjek_series.isna() | subjek_series.eq("") | subjek_series.str.lower().eq("nan"))
-    subjek_series = subjek_series.mask(subjek_series.str.lower().eq("kepala keluarga"), fallback_label)
+    subjek_series = subjek_series.mask(subjek_series.str.lower().eq("kepala keluarga"))
+    subjek_series = subjek_series.map(format_person_display_name).fillna(fallback_label)
 
     nama_series = profile_df["nama"].astype("string").str.strip()
     nama_series = nama_series.mask(nama_series.isna() | nama_series.eq("") | nama_series.str.lower().eq("nan"))
+    nama_series = nama_series.map(format_person_display_name)
     profile_df["nama_kk_subjek"] = nama_series.fillna(subjek_series).fillna(fallback_label)
     profile_df["label_kk"] = profile_df["nama_kk_subjek"].astype("string")
 
@@ -1364,7 +1500,13 @@ def add_desa_label(
         labeled_df[label_column] = labeled_df.index.astype("string")
         return labeled_df
 
-    name_series = labeled_df[name_column].astype("string").fillna("-").str.strip()
+    name_series = (
+        labeled_df[name_column]
+        .map(lambda value: format_display_name_value(value, name_column))
+        .astype("string")
+        .fillna("-")
+        .str.strip()
+    )
     labeled_df[label_column] = name_series
     if code_column in labeled_df.columns:
         code_series = labeled_df[code_column].astype("string")
@@ -1479,7 +1621,7 @@ def resolve_inequality_tables(tables: dict[str, pd.DataFrame]) -> tuple[pd.DataF
         if column in contributor_df.columns:
             contributor_df[column] = pd.to_numeric(contributor_df[column], errors="coerce")
 
-    return summary_df, contributor_df
+    return apply_display_name_casing(summary_df), apply_display_name_casing(contributor_df)
 
 
 def build_top_inequality_contributors_figure(
@@ -1758,7 +1900,12 @@ def add_journal_village_name(
         return labeled_df
 
     if name_column in labeled_df.columns:
-        village_series = labeled_df[name_column].astype("string").str.strip()
+        village_series = (
+            labeled_df[name_column]
+            .map(lambda value: format_display_name_value(value, name_column))
+            .astype("string")
+            .str.strip()
+        )
         village_series = village_series.mask(
             village_series.isna() | village_series.eq("") | village_series.str.lower().eq("nan")
         )
@@ -1830,6 +1977,68 @@ def render_journal_page_selector(
     )
     start, end = get_journal_page_slice(safe_total, int(selected_page), page_size)
     return start, end, f"Page {int(selected_page) + 1}"
+
+
+def build_journal_overview_table_html(
+    total_households: int,
+    total_villages: int,
+    mean_household_index: Any,
+    mean_village_index: Any,
+    vulnerable_share: Any,
+) -> str:
+    rows = [
+        (
+            "Valid Households",
+            format_journal_number(total_households, 0),
+            "Household records included in the household-level digital inclusion analysis.",
+        ),
+        (
+            "Villages",
+            format_journal_number(total_villages, 0),
+            "Village-level units available in the processed index table.",
+        ),
+        (
+            "Mean Household Index",
+            format_journal_number(mean_household_index),
+            "Average household digital inclusion index on the 0-1 scale.",
+        ),
+        (
+            "Mean Village Index",
+            format_journal_number(mean_village_index),
+            "Average village digital inclusion index on the 0-1 scale.",
+        ),
+        (
+            "Digitally Vulnerable Share",
+            format_journal_percent(vulnerable_share),
+            "Share of households classified as very low or low digital inclusion.",
+        ),
+    ]
+    body_rows = "\n".join(
+        (
+            "<tr>"
+            f"<td class='journal-overview-metric'>{escape(metric)}</td>"
+            f"<td class='journal-overview-value'>{escape(value)}</td>"
+            f"<td class='journal-overview-note'>{escape(note)}</td>"
+            "</tr>"
+        )
+        for metric, value, note in rows
+    )
+    return f"""
+    <div class="journal-overview-table-wrap">
+        <table class="journal-overview-table">
+            <thead>
+                <tr>
+                    <th>Summary Measure</th>
+                    <th>Value</th>
+                    <th>Operational Definition</th>
+                </tr>
+            </thead>
+            <tbody>
+                {body_rows}
+            </tbody>
+        </table>
+    </div>
+    """
 
 
 def prepare_journal_household_df(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -4009,15 +4218,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
             "This section reports the relative inequality category for each village and identifies the households that contribute most strongly to within-village inequality."
         )
 
-        selector_df = desa_inequality_df[["kode_deskel", "deskel"]].drop_duplicates().copy()
-        selector_df["label_desa"] = selector_df.apply(
-            lambda row: (
-                f"{row['deskel']} ({row['kode_deskel']})"
-                if pd.notna(row.get("kode_deskel")) and str(row.get("kode_deskel")).strip() not in {"", "nan"}
-                else str(row.get("deskel"))
-            ),
-            axis=1,
-        )
+        selector_df = add_desa_label(desa_inequality_df[["kode_deskel", "deskel"]].drop_duplicates().copy())
         selected_label = st.selectbox(
             "Select a Village to Review Inequality Contributors",
             options=selector_df["label_desa"].tolist(),
@@ -4249,12 +4450,16 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
     if not household_df.empty and "kategori_iid_rt" in household_df.columns:
         vulnerable_share = household_df["kategori_iid_rt"].astype(str).isin({"sangat rendah", "rendah"}).mean()
 
-    overview_cols = st.columns(5)
-    overview_cols[0].metric("Valid Households", format_journal_number(total_households, 0))
-    overview_cols[1].metric("Villages", format_journal_number(total_villages, 0))
-    overview_cols[2].metric("Mean Household Index", format_journal_number(mean_household_index))
-    overview_cols[3].metric("Mean Village Index", format_journal_number(mean_village_index))
-    overview_cols[4].metric("Digitally Vulnerable Share", format_journal_percent(vulnerable_share))
+    st.markdown(
+        build_journal_overview_table_html(
+            total_households,
+            total_villages,
+            mean_household_index,
+            mean_village_index,
+            vulnerable_share,
+        ),
+        unsafe_allow_html=True,
+    )
 
     st.markdown("### 1. Descriptive Profile of Households and Villages")
     if household_df.empty:
