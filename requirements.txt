@@ -9,4 +9,5 @@ scipy==1.17.0
 networkx==3.3
 python-louvain==0.16
 matplotlib==3.9.2
-
+wordcloud==1.9.6
+Sastrawi==1.0.1
