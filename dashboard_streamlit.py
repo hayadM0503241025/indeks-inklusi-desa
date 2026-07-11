@@ -77,7 +77,7 @@ TABLE_SPECS: dict[str, dict[str, Any]] = {
     "ringkasan_ketimpangan": {
         "filename": "ringkasan_ketimpangan.csv",
         "label": "Inequality Summary",
-        "description": "Overall and village-level Gini summary, including relative category and leading household contributor.",
+        "description": "Overall and village-level Gini summary, including tertile category and leading household contributor.",
         "required": False,
     },
     "kontributor_ketimpangan": {
@@ -89,7 +89,7 @@ TABLE_SPECS: dict[str, dict[str, Any]] = {
     "sebaran_gini_desa": {
         "filename": "sebaran_gini_desa.csv",
         "label": "Village Gini Distribution",
-        "description": "Tertile-based relative classification of household-index Gini values across sampled villages.",
+        "description": "Tertile classification of household-index Gini values across sampled villages.",
         "required": False,
     },
     "batas_kategori_iid_rt": {
@@ -138,11 +138,12 @@ TABLE_SPECS: dict[str, dict[str, Any]] = {
 
 CORE_TABLE_KEYS = ("data_keluarga", "indeks_desa", "penjelasan_variabel")
 
-CATEGORY_ORDER = [*iid_pipeline.IID_RT_CATEGORY_ORDER, iid_pipeline.UNSCORED_IID_CATEGORY_LABEL]
-VISIBLE_CATEGORY_ORDER = list(iid_pipeline.IID_RT_CATEGORY_ORDER)
+VISIBLE_CATEGORY_ORDER = ["rendah", "sedang", "tinggi", "sangat tinggi"]
+LOW_HOUSEHOLD_CATEGORY = "rendah"
+CATEGORY_ORDER = [*VISIBLE_CATEGORY_ORDER, iid_pipeline.UNSCORED_IID_CATEGORY_LABEL]
 CATEGORY_COLORS = {
     "sangat rendah": "#9f1239",
-    "rendah": "#ea580c",
+    "rendah": "#b91c1c",
     "sedang": "#eab308",
     "tinggi": "#14b8a6",
     "sangat tinggi": "#2563eb",
@@ -226,11 +227,30 @@ DIMENSION_LABELS = {
     "dimensi_E": "Social Enabling Environment",
 }
 JOURNAL_CATEGORY_LABELS = IID_CATEGORY_LABELS
-JOURNAL_CATEGORY_ORDER = ["Very Low", "Low", "Moderate", "High", "Very High"]
+JOURNAL_CATEGORY_ORDER = ["Low", "Moderate", "High", "Very High"]
+JOURNAL_LOW_INCLUSION_THRESHOLD = 0.60
 JOURNAL_CATEGORY_COLORS = {
     JOURNAL_CATEGORY_LABELS[category]: CATEGORY_COLORS[category]
     for category in VISIBLE_CATEGORY_ORDER
     if category in JOURNAL_CATEGORY_LABELS
+}
+JOURNAL_VILLAGE_GROUP_LABELS = {
+    "rendah": "Low inclusion",
+    "sedang": "Moderate inclusion",
+    "tinggi": "High inclusion",
+    "sangat tinggi": "Very high inclusion",
+}
+JOURNAL_VILLAGE_GROUP_INDEX_RANGES = {
+    "rendah": (None, 0.60),
+    "sedang": (0.60, 0.70),
+    "tinggi": (0.70, 0.80),
+    "sangat tinggi": (0.80, None),
+}
+JOURNAL_VILLAGE_GROUP_GOVERNANCE_MEANINGS = {
+    "rendah": "Penguatan akses dan kapasitas",
+    "sedang": "Intervensi berbasis dimensi lemah",
+    "tinggi": "Penguatan keberlanjutan layanan",
+    "sangat tinggi": "Potensi model praktik baik",
 }
 JOURNAL_GINI_LABELS = {
     **GINI_LABELS,
@@ -249,10 +269,8 @@ JOURNAL_INDICATOR_LABELS = {
     "indikator_D": "Household Internet Access",
     "indikator_E": "Household Head Educational Attainment",
     "indikator_F": "School Participation Ratio",
-    "indikator_G": "Household Head Organizational Involvement",
-    "indikator_H": "Household Member Organizational Involvement",
-    "indikator_I": "Household Head Community Participation",
-    "indikator_J": "Household Member Community Participation",
+    "indikator_G": "Household Organization Participation Ratio",
+    "indikator_H": "Household Community Participation Ratio",
     "indikator_K": "Social Media Use",
     "indikator_L": "Information Media Access",
     "indikator_M": "Policy Information Participation",
@@ -274,8 +292,11 @@ ANALYSIS_METRIC_LABELS = {
     "Proporsi Shapley Dimensi": "Shapley Share for Dimension Score",
     "Proporsi Shapley IID Desa": "Shapley Share for Village Digital Inclusion Index",
     "Proporsi Shapley IID": "Shapley Share for Digital Inclusion Index",
+    "Rata-rata Delta IID Desa": "Mean Delta in Village Digital Inclusion Index",
     "Rata-rata Kenaikan IID Desa (%)": "Mean Increase in Village Digital Inclusion Index (%)",
+    "Rata-rata Delta Deprivasi Digital": "Mean Delta in Digital Deprivation",
     "Rata-rata Penurunan Deprivasi Digital (%)": "Mean Reduction in Digital Deprivation (%)",
+    "Skenario OAT": "OAT Scenario",
 }
 
 DISPLAY_COLUMN_LABELS = {
@@ -317,13 +338,22 @@ DISPLAY_COLUMN_LABELS = {
     "jumlah_desa": "Villages",
     "total_desa": "Total Villages",
     "kategori_iid_rt": "Household Digital Inclusion Category",
-    "interpretasi_gini": "Relative Gini Category",
-    "interpretasi_gini_cakupan": "Relative Gini Category",
-    "rentang_gini": "Gini Range",
+    "kategori_iid_desa": "Village Digital Inclusion Category",
+    "rentang_iid_desa": "Village Digital Inclusion Range",
+    "interpretasi_iid_desa": "Village Digital Inclusion Interpretation",
+    "interpretasi_ikd_desa": "Village Digital Deprivation Interpretation",
+    "interpretasi_dds_desa": "DDS Tertile Interpretation",
+    "interpretasi_gini": "Gini Tertile Category",
+    "interpretasi_gini_cakupan": "Gini Tertile Category",
+    "rentang_gini": "Gini Tertile Range",
+    "rentang_dds_desa": "DDS Tertile Range",
+    "rentang_ikd_desa": "Digital Deprivation Tertile Range",
     "batas_bawah": "Lower Bound",
     "batas_atas": "Upper Bound",
     "iid_desa": "Village Digital Inclusion Index",
     "ikd_desa": "Village Digital Deprivation Score",
+    "dds_desa": "Digital Deprivation and Within-Village Inequality Score",
+    "iid_rt": "IID-RT",
     "iid_rumah_tangga": "Household Digital Inclusion Index",
     "ikd_rt": "Household Digital Deprivation Score",
     "gini_iid_rumah_tangga": "Within-Village Gini",
@@ -332,6 +362,7 @@ DISPLAY_COLUMN_LABELS = {
     "cakupan_analisis": "Analysis Scope",
     "family_id": "Household ID",
     "label_kk": "Household Label",
+    "peringkat_kategori_desa": "Category Rank in Village",
     "nama_kk_subjek": "Household Head or Subject",
     "nama_kontributor_utama": "Leading Contributor Name",
     "family_id_kontributor_utama": "Leading Contributor Household ID",
@@ -345,6 +376,17 @@ DISPLAY_COLUMN_LABELS = {
     "nama": "Name",
     "jml_keluarga": "Household Members",
     "jumlah_anggota_rumah_tangga": "Household Members",
+    "jumlah_anggota_usia_15plus": "Members Age 15+",
+    "jumlah_anggota_usia_15plus_memiliki_hp": "Members Age 15+ with Mobile Phone",
+    "rasio_hp_usia_15plus": "Mobile Phone Sufficiency Ratio Age 15+",
+    "jumlah_anggota_usia_9plus": "Members Age 9+",
+    "jumlah_anggota_usia_9plus_ikut_organisasi": "Members Age 9+ in Organizations",
+    "rasio_organisasi_usia_9plus": "Organization Participation Ratio Age 9+",
+    "jumlah_organisasi_keluarga": "Household Organization Activity Count",
+    "jumlah_anggota_usia_16plus": "Members Age 16+",
+    "jumlah_anggota_usia_16plus_ikut_masyarakat": "Members Age 16+ in Community Activities",
+    "rasio_partisipasi_masyarakat_usia_16plus": "Community Participation Ratio Age 16+",
+    "jumlah_partisipasi_masyarakat_keluarga": "Household Community Activity Count",
     "porsi_kontribusi_gini": "Gini Contribution Share",
     "kontribusi_gini": "Gini Contribution",
     "arah_deviasi": "Position Against Mean",
@@ -380,10 +422,8 @@ DISPLAY_COLUMN_LABELS = {
     "indikator_D": "Indicator D - Household Internet Access",
     "indikator_E": "Indicator E - Household Head Educational Attainment",
     "indikator_F": "Indicator F - School Participation Ratio",
-    "indikator_G": "Indicator G - Household Head Organizational Involvement",
-    "indikator_H": "Indicator H - Household Member Organizational Involvement",
-    "indikator_I": "Indicator I - Household Head Community Participation",
-    "indikator_J": "Indicator J - Household Member Community Participation",
+    "indikator_G": "Indicator G - Household Organization Participation Ratio",
+    "indikator_H": "Indicator H - Household Community Participation Ratio",
     "indikator_K": "Indicator K - Social Media Use",
     "indikator_L": "Indicator L - Information Media Access",
     "indikator_M": "Indicator M - Policy Information Participation",
@@ -408,10 +448,8 @@ EXACT_DISPLAY_VALUE_LABELS = {
     "indikator_perangkat_produktif": "Productive Digital Device Indicator",
     "indikator_akses_internet": "Internet Access Indicator",
     "indikator_pendidikan_kepala": "Household Head Education Indicator",
-    "indikator_organisasi_kepala": "Household Head Organization Indicator",
-    "indikator_organisasi_anggota": "Household Member Organization Indicator",
-    "indikator_partisipasi_masyarakat_kepala": "Household Head Community Participation Indicator",
-    "indikator_partisipasi_masyarakat_anggota": "Household Member Community Participation Indicator",
+    "indikator_organisasi_rasio": "Household Organization Participation Ratio Indicator",
+    "indikator_partisipasi_masyarakat_rasio": "Household Community Participation Ratio Indicator",
     "indikator_medsos": "Social Media Indicator",
     "indikator_media_informasi": "Information Media Indicator",
     "indikator_partisipasi_kebijakan": "Policy Information Participation Indicator",
@@ -429,14 +467,15 @@ EXACT_DISPLAY_VALUE_LABELS = {
     "baseline": "Baseline",
     "Kepemilikan HP rumah tangga": "Household Mobile Phone Ownership",
     "Kecukupan HP": "Mobile Phone Sufficiency",
+    "Kecukupan HP anggota usia 15 tahun ke atas": "Mobile Phone Sufficiency among Members Age 15+",
     "Kepemilikan perangkat digital produktif": "Productive Digital Device Ownership",
     "Akses internet rumah tangga": "Household Internet Access",
     "Pendidikan terakhir kepala keluarga": "Household Head Educational Attainment",
     "Rasio partisipasi sekolah": "School Participation Ratio",
-    "Keterlibatan organisasi kepala keluarga": "Household Head Organizational Involvement",
-    "Keterlibatan organisasi anggota keluarga": "Household Member Organizational Involvement",
-    "Partisipasi kepala keluarga pada kegiatan masyarakat": "Household Head Community Participation",
-    "Partisipasi anggota keluarga pada kegiatan masyarakat": "Household Member Community Participation",
+    "Rasio keterlibatan organisasi keluarga": "Household Organization Participation Ratio",
+    "Rasio partisipasi kegiatan masyarakat keluarga": "Household Community Participation Ratio",
+    "Partisipasi kepala keluarga pada kegiatan masyarakat": "Household Community Participation Ratio",
+    "Partisipasi anggota keluarga pada kegiatan masyarakat": "Household Community Participation Ratio",
     "Penggunaan media sosial": "Social Media Use",
     "Akses media informasi": "Information Media Access",
     "Partisipasi informasi/kebijakan": "Policy Information Participation",
@@ -460,6 +499,7 @@ EXACT_DISPLAY_VALUE_LABELS = {
 
 DISPLAY_TEXT_REPLACEMENTS = (
     ("SD 7-12 tahun, SMP 13-15 tahun, SMA/SMK 16-18 tahun, Perguruan Tinggi 19-25 tahun", "Primary school 7-12 years, junior secondary 13-15 years, senior secondary or vocational 16-18 years, higher education 19-25 years"),
+    ("persen) pada dimensi (skala 0-1), lalu dihitung perubahan IID Desa dan deprivasi digital sebagai 1 - IID", "percent) on the dimension (0-1 scale), then the change in the Village Digital Inclusion Index and digital deprivation is computed as 1 - IID"),
     ("tidak memiliki", "does not have"),
     ("memiliki minimal satu", "has at least one"),
     ("tidak ada akses", "no access"),
@@ -485,6 +525,32 @@ DISPLAY_TEXT_REPLACEMENTS = (
 )
 
 MISSING_TEXT_VALUES = {"", "nan", "none", "<na>", "null"}
+EDUCATION_YEARS_MAP = {
+    "tidak punya ijazah": 0.0,
+    "tk/paud": 0.0,
+    "tk": 0.0,
+    "paud": 0.0,
+    "sd/sederajat": 6.0,
+    "sd": 6.0,
+    "smp/sederajat": 9.0,
+    "smp": 9.0,
+    "sma/sederajat": 12.0,
+    "sma": 12.0,
+    "smk/sederajat": 12.0,
+    "smk": 12.0,
+    "d1/d2/d3": 14.0,
+    "d1": 13.0,
+    "d2": 14.0,
+    "d3": 15.0,
+    "d4/s1": 16.0,
+    "d4": 16.0,
+    "s1": 16.0,
+    "s2/s3": 19.0,
+    "s2": 18.0,
+    "s3": 21.0,
+}
+FEMALE_HEAD_COLUMN_CANDIDATES = ("jenis_kelamin", "gender", "sex", "jk", "kelamin")
+FEMALE_HEAD_VALUES = {"perempuan", "wanita", "female", "f", "p"}
 NAME_WORD_PATTERN = re.compile(r"[^\W\d_]+", re.UNICODE)
 VILLAGE_DISPLAY_NAME_COLUMNS = {
     "deskel",
@@ -837,6 +903,56 @@ def inject_styles() -> None:
             color: var(--text-soft) !important;
             line-height: 1.45;
         }
+        .journal-paper-table-wrap {
+            margin: 0.35rem 0 1.45rem 0;
+            max-width: 58rem;
+        }
+        .journal-paper-table-title {
+            color: #111827;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 1.04rem;
+            line-height: 1.25;
+            margin: 0 0 0.1rem 0;
+        }
+        .journal-paper-table {
+            background: #ffffff;
+            border-bottom: 1.5px solid #111827;
+            border-collapse: collapse;
+            border-top: 1.5px solid #111827;
+            color: #111827;
+            font-family: "Times New Roman", Times, serif;
+            width: 100%;
+        }
+        .journal-paper-table thead th {
+            border-bottom: 1px solid #111827;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.28rem 0.5rem 0.22rem 0.5rem;
+            text-align: left;
+        }
+        .journal-paper-table tbody td {
+            font-size: 1rem;
+            padding: 0.23rem 0.5rem;
+            text-align: left;
+        }
+        .journal-paper-table thead th:nth-child(2),
+        .journal-paper-table thead th:nth-child(3),
+        .journal-paper-table tbody td:nth-child(2),
+        .journal-paper-table tbody td:nth-child(3) {
+            text-align: right;
+        }
+        .journal-paper-table-wide {
+            max-width: 72rem;
+        }
+        .journal-paper-table-wide .journal-paper-table thead th,
+        .journal-paper-table-wide .journal-paper-table tbody td {
+            text-align: left;
+            vertical-align: top;
+        }
+        .journal-paper-table-wide .journal-paper-table thead th:nth-child(2),
+        .journal-paper-table-wide .journal-paper-table tbody td:nth-child(2) {
+            text-align: right;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -900,11 +1016,91 @@ def format_iid_category_label(value: Any) -> Any:
     return IID_CATEGORY_LABELS.get(text, text)
 
 
+def normalize_iid_score(value: Any) -> float | None:
+    if value is None or pd.isna(value):
+        return None
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return None
+    if numeric_value > 1:
+        numeric_value = numeric_value / 100
+    return numeric_value
+
+
+def classify_iid_fixed_threshold(value: Any) -> str | None:
+    numeric_value = normalize_iid_score(value)
+    if numeric_value is None:
+        return None
+    if numeric_value >= 0.80:
+        return "sangat tinggi"
+    if numeric_value >= 0.70:
+        return "tinggi"
+    if numeric_value >= 0.60:
+        return "sedang"
+    return "rendah"
+
+
+def compute_journal_low_inclusion_mask(household_df: pd.DataFrame) -> pd.Series:
+    if "iid_rumah_tangga" not in household_df.columns:
+        return pd.Series(False, index=household_df.index, dtype=bool)
+    scores = pd.to_numeric(household_df["iid_rumah_tangga"], errors="coerce")
+    scores = scores.mask(scores > 1, scores / 100)
+    return scores.notna() & scores.lt(JOURNAL_LOW_INCLUSION_THRESHOLD)
+
+
+def format_iid_category_range(category: Any) -> str:
+    return {
+        "rendah": "<0.60",
+        "sedang": ">=0.60-<0.70",
+        "tinggi": ">=0.70-<0.80",
+        "sangat tinggi": ">=0.80",
+    }.get(str(category), "")
+
+
+def format_journal_village_group_index_range(category: Any) -> str:
+    category_key = str(category)
+    if category_key not in JOURNAL_VILLAGE_GROUP_INDEX_RANGES:
+        return ""
+    return format_journal_index_range(*JOURNAL_VILLAGE_GROUP_INDEX_RANGES[category_key])
+
+
+def add_journal_village_group_columns(village_df: pd.DataFrame) -> pd.DataFrame:
+    grouped_df = village_df.copy()
+    if "iid_desa" not in grouped_df.columns:
+        return grouped_df
+
+    grouped_df["iid_desa"] = pd.to_numeric(grouped_df["iid_desa"], errors="coerce")
+    grouped_df["village_iid_group"] = grouped_df["iid_desa"].apply(classify_iid_fixed_threshold)
+    grouped_df["Village Digital Inclusion Group"] = grouped_df["village_iid_group"].map(
+        JOURNAL_VILLAGE_GROUP_LABELS
+    )
+    grouped_df["Village Digital Inclusion Range"] = grouped_df["village_iid_group"].map(
+        format_journal_village_group_index_range
+    )
+    grouped_df["Governance Meaning"] = grouped_df["village_iid_group"].map(
+        JOURNAL_VILLAGE_GROUP_GOVERNANCE_MEANINGS
+    )
+    return grouped_df
+
+
 def format_gini_label(value: Any) -> Any:
     if value is None or pd.isna(value):
         return value
     text = str(value).strip()
     return GINI_LABELS.get(text, text)
+
+
+def format_village_iid_interpretation_label(value: Any) -> Any:
+    if value is None or pd.isna(value):
+        return value
+    text = str(value).strip()
+    return {
+        "Rendah": "Low",
+        "Sedang": "Moderate",
+        "Tinggi": "High",
+        "Sangat Tinggi": "Very High",
+    }.get(text, text)
 
 
 def format_inequality_direction_label(value: Any) -> Any:
@@ -967,6 +1163,29 @@ def apply_display_name_casing(df: pd.DataFrame) -> pd.DataFrame:
     return cased_df
 
 
+_TRAILING_CODE_PATTERN = re.compile(r"^(?P<base>.+?)\s*\((?P<code>[A-Za-z]+\d*)\)$")
+
+
+def translate_label_with_trailing_code(text: str) -> str | None:
+    """Translate analysis labels such as ``Akses perangkat (A)`` or
+    ``Kepemilikan HP rumah tangga (A1)`` by splitting off the trailing
+    indicator/dimension code, translating the base phrase, and re-appending
+    the code so the dashboard shows English names while keeping the codes."""
+    match = _TRAILING_CODE_PATTERN.match(text)
+    if not match:
+        return None
+    base = match.group("base").strip()
+    code = match.group("code")
+    translated_base = (
+        EXACT_DISPLAY_VALUE_LABELS.get(base)
+        or DIMENSION_LABELS.get(base)
+        or DISPLAY_COLUMN_LABELS.get(base)
+    )
+    if translated_base is None:
+        return None
+    return f"{translated_base} ({code})"
+
+
 def translate_display_text(value: Any, column_name: str | None = None) -> Any:
     if value is None or pd.isna(value):
         return value
@@ -976,8 +1195,12 @@ def translate_display_text(value: Any, column_name: str | None = None) -> Any:
     text = value.strip()
     if column_name in DISPLAY_NAME_COLUMNS:
         return format_display_name_value(text, column_name)
-    if column_name in {"kategori_iid_rt", "Digital Inclusion Category"}:
+    if column_name in {"kategori_iid_rt", "kategori_iid_desa", "Digital Inclusion Category"}:
         return format_iid_category_label(text)
+    if column_name in {"interpretasi_iid_desa"}:
+        return format_village_iid_interpretation_label(text)
+    if column_name in {"interpretasi_ikd_desa", "interpretasi_dds_desa"}:
+        return format_gini_label(text)
     if column_name in {"interpretasi_gini", "interpretasi_gini_cakupan"}:
         return format_gini_label(text)
     if column_name in {"arah_deviasi", "arah_kontributor_utama"}:
@@ -992,6 +1215,10 @@ def translate_display_text(value: Any, column_name: str | None = None) -> Any:
         return JOURNAL_INDICATOR_LABELS[text]
     if text in ANALYSIS_METRIC_LABELS:
         return ANALYSIS_METRIC_LABELS[text]
+
+    coded_translation = translate_label_with_trailing_code(text)
+    if coded_translation is not None:
+        return coded_translation
 
     translated_text = text
     for source_text, replacement_text in DISPLAY_TEXT_REPLACEMENTS:
@@ -1013,7 +1240,7 @@ def prepare_display_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     for column in display_df.columns:
         if (
             column in DISPLAY_COLUMN_LABELS
-            or column in {"kategori_iid_rt", "interpretasi_gini", "interpretasi_gini_cakupan", "arah_deviasi", "arah_kontributor_utama"}
+            or column in {"kategori_iid_rt", "kategori_iid_desa", "interpretasi_iid_desa", "interpretasi_ikd_desa", "interpretasi_dds_desa", "interpretasi_gini", "interpretasi_gini_cakupan", "arah_deviasi", "arah_kontributor_utama"}
             or pd.api.types.is_object_dtype(display_df[column])
             or pd.api.types.is_string_dtype(display_df[column])
             or isinstance(display_df[column].dtype, pd.CategoricalDtype)
@@ -1104,10 +1331,141 @@ def derive_processing_summary(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def get_processing_summary_value(tables: dict[str, pd.DataFrame], metric_name: str) -> Any:
+    summary_df = tables.get("ringkasan_pengolahan", pd.DataFrame())
+    if summary_df.empty or not {"metrik", "nilai"}.issubset(summary_df.columns):
+        return pd.NA
+    metric_mask = summary_df["metrik"].astype("string").eq(metric_name)
+    if not metric_mask.any():
+        return pd.NA
+    return summary_df.loc[metric_mask, "nilai"].iloc[0]
+
+
+def first_numeric_series(df: pd.DataFrame, columns: tuple[str, ...]) -> pd.Series:
+    for column in columns:
+        if column in df.columns:
+            series = pd.to_numeric(df[column], errors="coerce").dropna()
+            if not series.empty:
+                return series
+    return pd.Series(dtype="float64")
+
+
+def format_mean_sd(series: pd.Series, digits: int = 2) -> str:
+    if series.empty:
+        return "-"
+    mean_value = float(series.mean())
+    std_value = float(series.std()) if len(series) > 1 else 0.0
+    return f"{format_number(mean_value, digits)} ({format_number(std_value, digits)})"
+
+
+def format_min_max(series: pd.Series, digits: int = 0) -> str:
+    if series.empty:
+        return "-"
+    return f"{format_number(float(series.min()), digits)} - {format_number(float(series.max()), digits)}"
+
+
+def estimate_head_schooling_years(detail_df: pd.DataFrame) -> pd.Series:
+    if detail_df.empty or "ijazah" not in detail_df.columns:
+        return pd.Series(dtype="float64")
+    education_series = iid_pipeline.normalize_text_series(detail_df["ijazah"])
+    return pd.to_numeric(education_series.map(EDUCATION_YEARS_MAP), errors="coerce").dropna()
+
+
+def compute_female_head_share(detail_df: pd.DataFrame) -> float | None:
+    if detail_df.empty:
+        return None
+    gender_column = next((column for column in FEMALE_HEAD_COLUMN_CANDIDATES if column in detail_df.columns), None)
+    if gender_column is None:
+        return None
+    gender_series = iid_pipeline.normalize_text_series(detail_df[gender_column])
+    gender_series = gender_series[~gender_series.isin(MISSING_TEXT_VALUES)]
+    if gender_series.empty:
+        return None
+    return float(gender_series.isin(FEMALE_HEAD_VALUES).mean())
+
+
+def build_sample_characteristics_df(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> pd.DataFrame:
+    desa_df = tables.get("indeks_desa", pd.DataFrame()).copy()
+    household_df = get_household_rows(tables.get("data_keluarga", pd.DataFrame()))
+
+    total_villages: Any = int(len(desa_df)) if not desa_df.empty else pd.NA
+    total_households: Any = int(len(household_df)) if not household_df.empty else pd.NA
+    if pd.isna(total_households):
+        total_households = pd.to_numeric(
+            pd.Series([get_processing_summary_value(tables, "jumlah_rumah_tangga_valid")]),
+            errors="coerce",
+        ).iloc[0]
+
+    household_size_series = first_numeric_series(
+        detail_df,
+        ("jumlah_anggota_rumah_tangga", "jml_keluarga"),
+    )
+    head_age_series = first_numeric_series(detail_df, ("usia",))
+    if head_age_series.empty:
+        head_age_series = first_numeric_series(household_df, ("usia",))
+    schooling_years_series = estimate_head_schooling_years(detail_df)
+    village_population_series = first_numeric_series(desa_df, ("jumlah_kk",))
+    female_head_share = compute_female_head_share(detail_df)
+    if female_head_share is None:
+        female_head_share = compute_female_head_share(household_df)
+
+    rows = [
+        {"Characteristic": "Total villages", "Statistic": "J", "Value": format_number(total_villages, 0)},
+        {"Characteristic": "Total households", "Statistic": "N", "Value": format_number(total_households, 0)},
+        {
+            "Characteristic": "Mean household size",
+            "Statistic": "mean (SD)",
+            "Value": format_mean_sd(household_size_series),
+        },
+        {
+            "Characteristic": "Household head: female-headed share",
+            "Statistic": "%",
+            "Value": format_percent(female_head_share) if female_head_share is not None else "Not available",
+        },
+        {
+            "Characteristic": "Household head: median age",
+            "Statistic": "years",
+            "Value": format_number(float(head_age_series.median()), 1) if not head_age_series.empty else "-",
+        },
+        {
+            "Characteristic": "Household head: median years of schooling",
+            "Statistic": "years",
+            "Value": format_number(float(schooling_years_series.median()), 1)
+            if not schooling_years_series.empty
+            else "-",
+        },
+        {
+            "Characteristic": "Median village population",
+            "Statistic": "households",
+            "Value": format_number(float(village_population_series.median()), 0)
+            if not village_population_series.empty
+            else "-",
+        },
+        {
+            "Characteristic": "Range of village population",
+            "Statistic": "min - max",
+            "Value": format_min_max(village_population_series),
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
 def normalize_desa_gini_table(desa_df: pd.DataFrame) -> pd.DataFrame:
-    if desa_df.empty or "gini_iid_rumah_tangga" not in desa_df.columns:
+    if desa_df.empty:
         return desa_df.copy()
-    normalized_df, _ = iid_pipeline.apply_relative_gini_classification(desa_df.copy())
+    normalized_df = desa_df.copy()
+    if "iid_desa" in normalized_df.columns:
+        normalized_df["iid_desa"] = pd.to_numeric(normalized_df["iid_desa"], errors="coerce")
+    if "ikd_desa" not in normalized_df.columns and "iid_desa" in normalized_df.columns:
+        normalized_df["ikd_desa"] = 1 - normalized_df["iid_desa"]
+    if "ikd_desa" in normalized_df.columns:
+        normalized_df["ikd_desa"] = pd.to_numeric(normalized_df["ikd_desa"], errors="coerce")
+        normalized_df, _ = iid_pipeline.apply_relative_ikd_classification(normalized_df)
+    if "gini_iid_rumah_tangga" in normalized_df.columns:
+        normalized_df, _ = iid_pipeline.apply_relative_gini_classification(normalized_df)
+    if {"ikd_desa", "gini_iid_rumah_tangga"}.issubset(normalized_df.columns):
+        normalized_df["dds_desa"] = iid_pipeline.compute_digital_deprivation_within_inequality_score(normalized_df)
+        normalized_df, _ = iid_pipeline.apply_relative_dds_classification(normalized_df)
     return normalized_df
 
 
@@ -1115,14 +1473,16 @@ def normalize_gini_distribution_table(
     distribution_df: pd.DataFrame,
     desa_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    if not distribution_df.empty and {"interpretasi_gini", "rentang_gini", "jumlah_desa"}.issubset(distribution_df.columns):
-        normalized_df = distribution_df.copy()
-        for column in ("jumlah_desa", "persentase_desa", "total_desa", "batas_bawah", "batas_atas"):
-            if column in normalized_df.columns:
-                normalized_df[column] = pd.to_numeric(normalized_df[column], errors="coerce")
-        return normalized_df
-    _, derived_df = iid_pipeline.apply_relative_gini_classification(desa_df.copy())
-    return derived_df
+    if not desa_df.empty and "gini_iid_rumah_tangga" in desa_df.columns:
+        _, derived_df = iid_pipeline.apply_relative_gini_classification(desa_df.copy())
+        return derived_df
+    if distribution_df.empty or not {"interpretasi_gini", "rentang_gini", "jumlah_desa"}.issubset(distribution_df.columns):
+        return pd.DataFrame()
+    normalized_df = distribution_df.copy()
+    for column in ("jumlah_desa", "persentase_desa", "total_desa", "batas_bawah", "batas_atas"):
+        if column in normalized_df.columns:
+            normalized_df[column] = pd.to_numeric(normalized_df[column], errors="coerce")
+    return normalized_df
 
 
 def normalize_variable_explanation_table(variable_df: pd.DataFrame) -> pd.DataFrame:
@@ -1130,7 +1490,45 @@ def normalize_variable_explanation_table(variable_df: pd.DataFrame) -> pd.DataFr
         return variable_df.copy()
     normalized_df = variable_df.copy()
     mask = normalized_df["nama_variabel"].astype("string").eq("interpretasi_gini")
+    normalized_df.loc[mask, "label_konsep"] = "Kategori tertil Gini IID-RT"
+    normalized_df.loc[mask, "dimensi"] = "klasifikasi relatif ketimpangan desa"
+    normalized_df.loc[mask, "simbol_dimensi"] = "Kategori tertil Gini"
     normalized_df.loc[mask, "aturan_skoring"] = iid_pipeline.GINI_INTERPRETATION_RULE_TEXT
+    mask = normalized_df["nama_variabel"].astype("string").eq("interpretasi_ikd_desa")
+    normalized_df.loc[mask, "aturan_skoring"] = iid_pipeline.IKD_INTERPRETATION_RULE_TEXT
+    if not normalized_df["nama_variabel"].astype("string").eq("dds_desa").any():
+        normalized_df = pd.concat(
+            [
+                normalized_df,
+                pd.DataFrame(
+                    [
+                        {
+                            "nama_variabel": "dds_desa",
+                            "level_output": "desa",
+                            "label_konsep": "Digital Deprivation and Within-Village Inequality",
+                            "dimensi": "gabungan deprivasi digital dan ketimpangan internal",
+                            "simbol_dimensi": "DDS",
+                            "bobot_dimensi": "50% IKD-Desa; 50% Gini IID-RT",
+                            "sumber_nilai": "turunan dari iid_desa dan gini_iid_rumah_tangga",
+                            "aturan_skoring": iid_pipeline.DDS_RULE_TEXT,
+                            "catatan": pd.NA,
+                        },
+                        {
+                            "nama_variabel": "interpretasi_dds_desa",
+                            "level_output": "desa",
+                            "label_konsep": "Interpretasi tertil DDS",
+                            "dimensi": "klasifikasi prioritas deprivasi dan ketimpangan",
+                            "simbol_dimensi": "Kategori DDS",
+                            "bobot_dimensi": pd.NA,
+                            "sumber_nilai": "turunan dari dds_desa",
+                            "aturan_skoring": iid_pipeline.DDS_INTERPRETATION_RULE_TEXT,
+                            "catatan": pd.NA,
+                        },
+                    ]
+                ),
+            ],
+            ignore_index=True,
+        )
     return normalized_df
 
 
@@ -1152,6 +1550,119 @@ def ensure_advanced_analysis_tables(tables: dict[str, pd.DataFrame]) -> dict[str
         if key not in enriched_tables or enriched_tables[key].empty:
             enriched_tables[key] = derived_tables.get(key, pd.DataFrame())
     return enriched_tables
+
+
+def rebuild_household_iid_distribution_by_village(keluarga_df: pd.DataFrame) -> pd.DataFrame:
+    household_df = get_household_rows(keluarga_df)
+    required_columns = {"kode_deskel", "deskel", "kategori_iid_rt"}
+    if household_df.empty or not required_columns.issubset(household_df.columns):
+        return pd.DataFrame()
+
+    grouped_df = (
+        household_df.dropna(subset=["kategori_iid_rt"])
+        .groupby(["kode_deskel", "deskel", "kategori_iid_rt"], dropna=False)
+        .size()
+        .rename("jumlah_kk")
+        .reset_index()
+    )
+    if grouped_df.empty:
+        return grouped_df
+
+    village_totals = (
+        household_df.groupby(["kode_deskel", "deskel"], dropna=False)
+        .size()
+        .rename("total_kk_desa")
+        .reset_index()
+    )
+    full_index = pd.MultiIndex.from_product(
+        [
+            village_totals["kode_deskel"].drop_duplicates().tolist(),
+            VISIBLE_CATEGORY_ORDER,
+        ],
+        names=["kode_deskel", "kategori_iid_rt"],
+    )
+    village_lookup = village_totals[["kode_deskel", "deskel", "total_kk_desa"]].drop_duplicates("kode_deskel")
+    distribution_df = (
+        grouped_df.set_index(["kode_deskel", "kategori_iid_rt"])
+        .reindex(full_index, fill_value=0)
+        .reset_index()
+        .drop(columns=["deskel"], errors="ignore")
+        .merge(village_lookup, on="kode_deskel", how="left")
+    )
+    distribution_df["persentase_kk"] = distribution_df["jumlah_kk"] / distribution_df["total_kk_desa"].replace(0, pd.NA)
+    distribution_df["rentang_iid_rt"] = distribution_df["kategori_iid_rt"].map(format_iid_category_range)
+    return distribution_df[
+        ["kode_deskel", "deskel", "kategori_iid_rt", "rentang_iid_rt", "jumlah_kk", "persentase_kk", "total_kk_desa"]
+    ]
+
+
+def rebuild_resident_iid_distribution(keluarga_df: pd.DataFrame) -> pd.DataFrame:
+    if keluarga_df.empty or "family_id" not in keluarga_df.columns:
+        return pd.DataFrame()
+
+    source_df = keluarga_df.copy()
+    household_df = get_household_rows(source_df)
+    if household_df.empty or not {"family_id", "kategori_iid_rt"}.issubset(household_df.columns):
+        return pd.DataFrame()
+
+    category_lookup = household_df[["family_id", "kategori_iid_rt"]].drop_duplicates("family_id")
+    resident_df = source_df[["family_id"]].merge(category_lookup, on="family_id", how="left")
+    resident_df["kategori_iid_rt"] = resident_df["kategori_iid_rt"].fillna(iid_pipeline.UNSCORED_IID_CATEGORY_LABEL)
+    counts = (
+        resident_df["kategori_iid_rt"]
+        .value_counts()
+        .reindex(CATEGORY_ORDER, fill_value=0)
+        .rename_axis("kategori_iid_rt")
+        .reset_index(name="jumlah_warga")
+    )
+    total = max(int(counts["jumlah_warga"].sum()), 1)
+    counts["persentase_warga"] = counts["jumlah_warga"] / total
+    counts["total_warga"] = total
+    counts["rentang_iid_rt"] = counts["kategori_iid_rt"].map(format_iid_category_range)
+    counts.loc[counts["kategori_iid_rt"].eq(iid_pipeline.UNSCORED_IID_CATEGORY_LABEL), "rentang_iid_rt"] = (
+        "RT tidak valid/tidak diberi skor"
+    )
+    return counts[["kategori_iid_rt", "rentang_iid_rt", "jumlah_warga", "persentase_warga", "total_warga"]]
+
+
+def standardize_iid_category_tables(tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    updated_tables = tables.copy()
+
+    keluarga_df = updated_tables.get("data_keluarga", pd.DataFrame()).copy()
+    if not keluarga_df.empty and "iid_rumah_tangga" in keluarga_df.columns:
+        keluarga_df["iid_rumah_tangga"] = pd.to_numeric(keluarga_df["iid_rumah_tangga"], errors="coerce")
+        row_categories = keluarga_df["iid_rumah_tangga"].map(classify_iid_fixed_threshold)
+        if "family_id" in keluarga_df.columns:
+            category_lookup = (
+                pd.DataFrame({"family_id": keluarga_df["family_id"], "kategori_iid_rt": row_categories})
+                .dropna(subset=["kategori_iid_rt"])
+                .drop_duplicates("family_id")
+                .set_index("family_id")["kategori_iid_rt"]
+            )
+            keluarga_df["kategori_iid_rt"] = keluarga_df["family_id"].map(category_lookup)
+        else:
+            keluarga_df["kategori_iid_rt"] = row_categories
+        keluarga_df["kategori_iid_rt"] = keluarga_df["kategori_iid_rt"].fillna(iid_pipeline.UNSCORED_IID_CATEGORY_LABEL)
+        updated_tables["data_keluarga"] = keluarga_df
+
+        village_distribution_df = rebuild_household_iid_distribution_by_village(keluarga_df)
+        if not village_distribution_df.empty:
+            updated_tables["sebaran_iid_rt_desa"] = village_distribution_df
+
+        resident_distribution_df = rebuild_resident_iid_distribution(keluarga_df)
+        if not resident_distribution_df.empty:
+            updated_tables["sebaran_warga_iid_rt"] = resident_distribution_df
+
+    desa_df = updated_tables.get("indeks_desa", pd.DataFrame()).copy()
+    if not desa_df.empty and "iid_desa" in desa_df.columns:
+        desa_df["iid_desa"] = pd.to_numeric(desa_df["iid_desa"], errors="coerce")
+        desa_df["kategori_iid_desa"] = desa_df["iid_desa"].map(classify_iid_fixed_threshold)
+        desa_df["rentang_iid_desa"] = desa_df["kategori_iid_desa"].map(format_iid_category_range)
+        if "interpretasi_iid_desa" not in desa_df.columns:
+            desa_df["interpretasi_iid_desa"] = desa_df["iid_desa"].map(iid_pipeline.classify_iid_desa_absolute)
+        updated_tables["indeks_desa"] = normalize_desa_gini_table(desa_df)
+
+    return updated_tables
 
 
 @st.cache_data(show_spinner=False)
@@ -1188,6 +1699,7 @@ def load_output_bundle_cached(output_dir_str: str, folder_signature: str) -> dic
         )
     if "penjelasan_variabel" in tables:
         tables["penjelasan_variabel"] = normalize_variable_explanation_table(tables["penjelasan_variabel"])
+    tables = standardize_iid_category_tables(tables)
     tables = ensure_advanced_analysis_tables(tables)
     tables = {key: apply_display_name_casing(df) for key, df in tables.items()}
 
@@ -1320,6 +1832,9 @@ def load_household_detail_cached(
         "hp_jumlah",
         "hp_jumlah_num",
         "hp_jumlah_terstandar",
+        "jumlah_anggota_usia_15plus",
+        "jumlah_anggota_usia_15plus_memiliki_hp",
+        "rasio_hp_usia_15plus",
         "elektronik_rumah",
         "jumlah_perangkat_produktif_rumah_tangga",
         "wifi",
@@ -1338,10 +1853,14 @@ def load_household_detail_cached(
         "medsos",
         "media_informasi",
         "par_kebijakan",
-        "jumlah_organisasi_kepala",
-        "jumlah_organisasi_anggota",
-        "jumlah_partisipasi_masyarakat_kepala",
-        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_organisasi_keluarga",
+        "jumlah_anggota_usia_9plus",
+        "jumlah_anggota_usia_9plus_ikut_organisasi",
+        "rasio_organisasi_usia_9plus",
+        "jumlah_partisipasi_masyarakat_keluarga",
+        "jumlah_anggota_usia_16plus",
+        "jumlah_anggota_usia_16plus_ikut_masyarakat",
+        "rasio_partisipasi_masyarakat_usia_16plus",
         "jumlah_partisipasi_kebijakan",
         "iid_rt",
         "ikd_rt",
@@ -1354,15 +1873,22 @@ def load_household_detail_cached(
         "hp_jumlah",
         "hp_jumlah_num",
         "hp_jumlah_terstandar",
+        "jumlah_anggota_usia_15plus",
+        "jumlah_anggota_usia_15plus_memiliki_hp",
+        "rasio_hp_usia_15plus",
         "jumlah_perangkat_produktif_rumah_tangga",
         "rp_komunikasi_tertinggi",
         "jumlah_anggota_usia_sekolah",
         "jumlah_status_sekolah_terisi",
         "jumlah_anggota_sedang_sekolah",
-        "jumlah_organisasi_kepala",
-        "jumlah_organisasi_anggota",
-        "jumlah_partisipasi_masyarakat_kepala",
-        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_organisasi_keluarga",
+        "jumlah_anggota_usia_9plus",
+        "jumlah_anggota_usia_9plus_ikut_organisasi",
+        "rasio_organisasi_usia_9plus",
+        "jumlah_partisipasi_masyarakat_keluarga",
+        "jumlah_anggota_usia_16plus",
+        "jumlah_anggota_usia_16plus_ikut_masyarakat",
+        "rasio_partisipasi_masyarakat_usia_16plus",
         "jumlah_partisipasi_kebijakan",
         "iid_rt",
         "ikd_rt",
@@ -1400,7 +1926,7 @@ def resolve_household_detail_df(meta: dict[str, Any], tables: dict[str, pd.DataF
         category_df = household_df[["family_id", "kategori_iid_rt"]].drop_duplicates(subset=["family_id"])
         detail_df = detail_df.merge(category_df, on="family_id", how="left")
     else:
-        detail_df["kategori_iid_rt"] = detail_df["iid_rt"].apply(iid_pipeline.classify_iid_rt)
+        detail_df["kategori_iid_rt"] = detail_df["iid_rt"].apply(classify_iid_fixed_threshold)
 
     return detail_df
 
@@ -1585,20 +2111,9 @@ def build_ranked_red_bar_figure(
 def resolve_inequality_tables(tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, pd.DataFrame]:
     summary_df = tables.get("ringkasan_ketimpangan", pd.DataFrame()).copy()
     contributor_df = tables.get("kontributor_ketimpangan", pd.DataFrame()).copy()
-    valid_gini_labels = set(iid_pipeline.GINI_CATEGORY_ORDER)
-    summary_labels = set(summary_df.get("interpretasi_gini", pd.Series(dtype="string")).dropna().astype("string").tolist())
-    contributor_labels = set(
-        contributor_df.get("interpretasi_gini_cakupan", pd.Series(dtype="string")).dropna().astype("string").tolist()
-    )
-    uses_relative_labels = (
-        (not summary_labels or summary_labels.issubset(valid_gini_labels))
-        and (not contributor_labels or contributor_labels.issubset(valid_gini_labels))
-    )
-
-    if summary_df.empty or contributor_df.empty or not uses_relative_labels:
-        household_df = get_household_rows(tables.get("data_keluarga", pd.DataFrame()))
-        if not household_df.empty:
-            summary_df, contributor_df = iid_pipeline.build_gini_assessment_tables(household_df)
+    household_df = get_household_rows(tables.get("data_keluarga", pd.DataFrame()))
+    if not household_df.empty:
+        summary_df, contributor_df = iid_pipeline.build_gini_assessment_tables(household_df)
 
     for column in (
         "jumlah_kk",
@@ -1729,8 +2244,6 @@ def build_contributor_profile_preview_df(contributor_df: pd.DataFrame) -> pd.Dat
             "indikator_F",
             "indikator_G",
             "indikator_H",
-            "indikator_I",
-            "indikator_J",
             "indikator_K",
             "indikator_L",
             "indikator_M",
@@ -1765,10 +2278,8 @@ def build_contributor_profile_preview_df(contributor_df: pd.DataFrame) -> pd.Dat
             "indikator_D": "Indicator D - Household Internet Access",
             "indikator_E": "Indicator E - Household Head Educational Attainment",
             "indikator_F": "Indicator F - School Participation Ratio",
-            "indikator_G": "Indicator G - Household Head Organizational Involvement",
-            "indikator_H": "Indicator H - Household Member Organizational Involvement",
-            "indikator_I": "Indicator I - Household Head Community Participation",
-            "indikator_J": "Indicator J - Household Member Community Participation",
+            "indikator_G": "Indicator G - Household Organization Participation Ratio",
+            "indikator_H": "Indicator H - Household Community Participation Ratio",
             "indikator_K": "Indicator K - Social Media Use",
             "indikator_L": "Indicator L - Information Media Access",
             "indikator_M": "Indicator M - Policy Information Participation",
@@ -1784,6 +2295,98 @@ def get_coordinate_columns(df: pd.DataFrame) -> tuple[str | None, str | None]:
             lon_col = candidate
             break
     return lat_col, lon_col
+
+
+def resolve_low_household_category(household_df: pd.DataFrame) -> str:
+    del household_df
+    return LOW_HOUSEHOLD_CATEGORY
+
+
+def build_low_category_household_ranking_df(
+    household_df: pd.DataFrame,
+    selected_desa: str,
+    all_villages_label: str,
+    category: str,
+) -> pd.DataFrame:
+    output_columns = [
+        "peringkat_kategori_desa",
+        "deskel",
+        "nama",
+        "lat",
+        "long",
+        "iid_rt",
+        "kategori_iid_rt",
+    ]
+    if household_df.empty or not {"kategori_iid_rt", "iid_rumah_tangga"}.issubset(household_df.columns):
+        return pd.DataFrame(columns=output_columns)
+
+    ranking_df = household_df.copy()
+    if selected_desa != all_villages_label and "deskel" in ranking_df.columns:
+        selected_desa_key = str(selected_desa).strip().casefold()
+        desa_key = ranking_df["deskel"].astype("string").str.strip().str.casefold()
+        ranking_df = ranking_df.loc[desa_key.eq(selected_desa_key)].copy()
+
+    category_mask = ranking_df["kategori_iid_rt"].astype("string").str.strip().str.lower().eq(category)
+    ranking_df = ranking_df.loc[category_mask].copy()
+    if ranking_df.empty:
+        return pd.DataFrame(columns=output_columns)
+
+    ranking_df["iid_rumah_tangga"] = pd.to_numeric(ranking_df["iid_rumah_tangga"], errors="coerce")
+    ranking_df = ranking_df.dropna(subset=["iid_rumah_tangga"]).copy()
+    if ranking_df.empty:
+        return pd.DataFrame(columns=output_columns)
+
+    lat_col, lon_col = get_coordinate_columns(ranking_df)
+    if lat_col and lon_col:
+        ranking_df["lat"] = pd.to_numeric(ranking_df[lat_col], errors="coerce")
+        ranking_df["long"] = pd.to_numeric(ranking_df[lon_col], errors="coerce")
+    else:
+        ranking_df["lat"] = pd.NA
+        ranking_df["long"] = pd.NA
+
+    if "deskel" not in ranking_df.columns:
+        ranking_df["deskel"] = pd.NA
+    if "nama" not in ranking_df.columns:
+        name_fallback = next(
+            (column for column in ("nama_kk_subjek", "label_kk", "family_id") if column in ranking_df.columns),
+            None,
+        )
+        ranking_df["nama"] = ranking_df[name_fallback] if name_fallback else pd.NA
+
+    group_columns = [column for column in ("kode_deskel", "deskel") if column in ranking_df.columns]
+    if not group_columns:
+        ranking_df["_ranking_scope"] = "all"
+        group_columns = ["_ranking_scope"]
+
+    ranking_df = ranking_df.sort_values(
+        [*group_columns, "iid_rumah_tangga", "nama"],
+        ascending=[*[True for _ in group_columns], True, True],
+        kind="mergesort",
+    )
+    ranking_df["peringkat_kategori_desa"] = (
+        ranking_df.groupby(group_columns, dropna=False)["iid_rumah_tangga"]
+        .rank(method="first", ascending=True)
+        .astype("Int64")
+    )
+    ranking_df["iid_rt"] = ranking_df["iid_rumah_tangga"]
+
+    if selected_desa == all_villages_label:
+        ranking_df = ranking_df.sort_values(
+            ["deskel", "peringkat_kategori_desa", "iid_rt", "nama"],
+            ascending=[True, True, True, True],
+            kind="mergesort",
+        )
+    else:
+        ranking_df = ranking_df.sort_values(
+            ["peringkat_kategori_desa", "iid_rt", "nama"],
+            ascending=[True, True, True],
+            kind="mergesort",
+        )
+
+    repeated_desa_mask = ranking_df.duplicated(subset=group_columns, keep="first")
+    ranking_df.loc[repeated_desa_mask, "deskel"] = ""
+
+    return ranking_df[[column for column in output_columns if column in ranking_df.columns]]
 
 
 def format_journal_number(value: Any, digits: int = 3) -> str:
@@ -2014,7 +2617,7 @@ def build_journal_overview_table_html(
         (
             "Digitally Vulnerable Share",
             format_journal_percent(vulnerable_share),
-            "Share of households classified as very low or low digital inclusion.",
+            "Share of households classified as Low under the journal threshold scheme (household index <0.60).",
         ),
     ]
     body_rows = "\n".join(
@@ -2067,7 +2670,9 @@ def prepare_journal_household_df(tables: dict[str, pd.DataFrame]) -> pd.DataFram
             household_df[column] = pd.to_numeric(household_df[column], errors="coerce")
 
     if "kategori_iid_rt" not in household_df.columns:
-        household_df["kategori_iid_rt"] = household_df["iid_rumah_tangga"].apply(iid_pipeline.classify_iid_rt)
+        household_df["kategori_iid_rt"] = household_df["iid_rumah_tangga"].apply(classify_iid_fixed_threshold)
+    else:
+        household_df["kategori_iid_rt"] = household_df["iid_rumah_tangga"].apply(classify_iid_fixed_threshold)
 
     household_df = exclude_unscored_iid_category(household_df)
     household_df["Digital Inclusion Category"] = (
@@ -2085,10 +2690,10 @@ def prepare_journal_raw_profile_df(detail_df: pd.DataFrame, household_df: pd.Dat
         "elektronik_rumah",
         "wifi_teragregasi",
         "hp_provider_teragregasi",
-        "jumlah_organisasi_kepala",
-        "jumlah_organisasi_anggota",
-        "jumlah_partisipasi_masyarakat_kepala",
-        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_organisasi_keluarga",
+        "rasio_organisasi_usia_9plus",
+        "jumlah_partisipasi_masyarakat_keluarga",
+        "rasio_partisipasi_masyarakat_usia_16plus",
         "jumlah_partisipasi_kebijakan",
     }
     if not detail_df.empty and raw_columns.intersection(detail_df.columns):
@@ -2128,11 +2733,18 @@ def prepare_journal_raw_profile_df(detail_df: pd.DataFrame, household_df: pd.Dat
         "hp_jumlah",
         "hp_jumlah_num",
         "hp_jumlah_terstandar",
+        "jumlah_anggota_usia_15plus",
+        "jumlah_anggota_usia_15plus_memiliki_hp",
+        "rasio_hp_usia_15plus",
         "jumlah_perangkat_produktif_rumah_tangga",
-        "jumlah_organisasi_kepala",
-        "jumlah_organisasi_anggota",
-        "jumlah_partisipasi_masyarakat_kepala",
-        "jumlah_partisipasi_masyarakat_anggota",
+        "jumlah_organisasi_keluarga",
+        "jumlah_anggota_usia_9plus",
+        "jumlah_anggota_usia_9plus_ikut_organisasi",
+        "rasio_organisasi_usia_9plus",
+        "jumlah_partisipasi_masyarakat_keluarga",
+        "jumlah_anggota_usia_16plus",
+        "jumlah_anggota_usia_16plus_ikut_masyarakat",
+        "rasio_partisipasi_masyarakat_usia_16plus",
         "jumlah_partisipasi_kebijakan",
     )
     for column in numeric_columns:
@@ -2155,6 +2767,7 @@ def prepare_journal_village_df(
         "jumlah_kk",
         "iid_desa",
         "ikd_desa",
+        "dds_desa",
         "gini_iid_rumah_tangga",
         *JOURNAL_DIMENSION_LABELS.keys(),
     ]
@@ -2163,13 +2776,24 @@ def prepare_journal_village_df(
             village_df[column] = pd.to_numeric(village_df[column], errors="coerce")
     if "ikd_desa" not in village_df.columns and "iid_desa" in village_df.columns:
         village_df["ikd_desa"] = 1 - village_df["iid_desa"]
+    if {"ikd_desa", "gini_iid_rumah_tangga"}.issubset(village_df.columns):
+        village_df["dds_desa"] = iid_pipeline.compute_digital_deprivation_within_inequality_score(village_df)
+        village_df, _ = iid_pipeline.apply_relative_dds_classification(village_df)
 
     if "iid_desa" in village_df.columns:
-        village_df["Village Rank"] = village_df["iid_desa"].rank(method="first", ascending=False).astype("Int64")
+        village_df = add_journal_village_group_columns(village_df)
     if "interpretasi_gini" in village_df.columns:
         village_df["Within-Village Gini Category"] = (
             village_df["interpretasi_gini"].astype(str).map(JOURNAL_GINI_LABELS).fillna(village_df["interpretasi_gini"])
         )
+    if "interpretasi_iid_desa" in village_df.columns:
+        village_df["Village Digital Inclusion Interpretation"] = village_df["interpretasi_iid_desa"].map(
+            format_village_iid_interpretation_label
+        )
+    if "interpretasi_ikd_desa" in village_df.columns:
+        village_df["Village Digital Deprivation Interpretation"] = village_df["interpretasi_ikd_desa"].map(format_gini_label)
+    if "interpretasi_dds_desa" in village_df.columns:
+        village_df["DDS Tertile Interpretation"] = village_df["interpretasi_dds_desa"].map(format_gini_label)
 
     lat_col, lon_col = get_coordinate_columns(household_df)
     if lat_col and lon_col and not household_df.empty:
@@ -2536,10 +3160,8 @@ def build_journal_social_participation_bar_figure(raw_df: pd.DataFrame) -> go.Fi
 
     rows: list[dict[str, Any]] = []
     social_columns = (
-        ("jumlah_organisasi_kepala", "Household Head Organizational Involvement"),
-        ("jumlah_organisasi_anggota", "Household Member Organizational Involvement"),
-        ("jumlah_partisipasi_masyarakat_kepala", "Household Head Community Participation"),
-        ("jumlah_partisipasi_masyarakat_anggota", "Household Member Community Participation"),
+        ("jumlah_anggota_usia_9plus_ikut_organisasi", "Members Age 9+ in Organizations"),
+        ("jumlah_anggota_usia_16plus_ikut_masyarakat", "Members Age 16+ in Community Activities"),
         ("jumlah_partisipasi_kebijakan", "Policy Information Participation"),
     )
     for column, label in social_columns:
@@ -2596,6 +3218,95 @@ def build_journal_category_share_df(household_df: pd.DataFrame) -> pd.DataFrame:
     return counts
 
 
+def format_journal_distribution_category(value: Any) -> str:
+    value_text = str(value)
+    return {
+        "Very High": "Very high",
+    }.get(value_text, value_text)
+
+
+def build_journal_household_distribution_table_html(category_df: pd.DataFrame) -> str:
+    if category_df.empty:
+        return ""
+
+    body_rows = "".join(
+        (
+            "<tr>"
+            f"<td>{escape(format_journal_distribution_category(row.get('Digital Inclusion Category')))}</td>"
+            f"<td>{escape(format_journal_number(row.get('Households'), 0))}</td>"
+            f"<td>{escape(format_journal_percent(row.get('Share')))}</td>"
+            "</tr>"
+        )
+        for _, row in category_df.iterrows()
+    )
+    return f"""
+    <div class="journal-paper-table-wrap">
+        <p class="journal-paper-table-title"><strong>Table 4.</strong> Household Distribution across Digital Inclusion Categories</p>
+        <table class="journal-paper-table">
+            <thead>
+                <tr>
+                    <th>Kategori</th>
+                    <th>Jumlah rumah tangga</th>
+                    <th>Persentase</th>
+                </tr>
+            </thead>
+            <tbody>
+                {body_rows}
+            </tbody>
+        </table>
+    </div>
+    """
+
+
+def format_journal_index_range(lower: float | None, upper: float | None) -> str:
+    if lower is None and upper is None:
+        return "-"
+    if lower is None:
+        return f"< {upper:.3f}"
+    if upper is None:
+        return f">= {lower:.3f}"
+    return f">= {lower:.3f}-< {upper:.3f}"
+
+
+def build_journal_village_group_distribution_table_html(village_df: pd.DataFrame) -> str:
+    if village_df.empty or "iid_desa" not in village_df.columns:
+        return ""
+
+    summary_df = build_journal_village_group_summary_df(village_df)
+    if summary_df.empty:
+        return ""
+
+    body_rows = "".join(
+        (
+            "<tr>"
+            f"<td>{escape(str(row.get('Village Group')))}</td>"
+            f"<td>{escape(format_journal_number(row.get('Villages'), 0))}</td>"
+            f"<td>{escape(str(row.get('Index Range')))}</td>"
+            f"<td>{escape(str(row.get('Governance Meaning')))}</td>"
+            "</tr>"
+        )
+        for _, row in summary_df.iterrows()
+    )
+    return f"""
+    <div class="journal-paper-table-wrap journal-paper-table-wide">
+        <p class="journal-paper-table-title"><strong>Table 5.</strong> Village Group Distribution Based on Digital Inclusion Index</p>
+        <table class="journal-paper-table">
+            <thead>
+                <tr>
+                    <th>Village group</th>
+                    <th>Number of villages</th>
+                    <th>Index range</th>
+                    <th>Governance meaning</th>
+                </tr>
+            </thead>
+            <tbody>
+                {body_rows}
+            </tbody>
+        </table>
+    </div>
+    """
+
+
 def build_journal_household_histogram_figure(household_df: pd.DataFrame) -> go.Figure:
     plot_df = household_df.dropna(subset=["iid_rumah_tangga"]).copy()
     fig = px.histogram(
@@ -2643,35 +3354,230 @@ def build_journal_category_share_figure(category_df: pd.DataFrame) -> go.Figure:
 
 def build_journal_household_boxplot_figure(
     household_df: pd.DataFrame,
-    selected_villages: list[str],
+    selected_villages: list[str] | None = None,
 ) -> go.Figure:
     plot_df = add_journal_village_name(household_df)
+    plot_df["iid_rumah_tangga"] = pd.to_numeric(plot_df["iid_rumah_tangga"], errors="coerce")
     plot_df = plot_df.dropna(subset=["iid_rumah_tangga"])
     if selected_villages:
         plot_df = plot_df.loc[plot_df["Village"].isin(selected_villages)].copy()
-    median_order = (
-        plot_df.groupby("Village")["iid_rumah_tangga"]
-        .median()
-        .sort_values(ascending=False)
-        .index.tolist()
+
+    if plot_df.empty:
+        empty_fig = go.Figure()
+        empty_fig.update_layout(
+            title="Household Digital Inclusion Scores by Village",
+            xaxis_title="Village",
+            yaxis_title="Household Digital Inclusion Index",
+        )
+        return apply_publication_figure_style(empty_fig)
+
+    village_stats = (
+        plot_df.groupby("Village", dropna=False)["iid_rumah_tangga"]
+        .agg(
+            households="size",
+            mean="mean",
+            q1=lambda values: values.quantile(0.25),
+            median="median",
+            q3=lambda values: values.quantile(0.75),
+            minimum="min",
+            maximum="max",
+        )
+        .reset_index()
     )
-    fig = px.box(
-        plot_df,
-        x="Village",
-        y="iid_rumah_tangga",
-        category_orders={"Village": median_order},
-        points=False,
-        color_discrete_sequence=["#2563eb"],
+    village_stats["village_group"] = village_stats["mean"].apply(classify_iid_fixed_threshold)
+    village_stats["Village Group"] = village_stats["village_group"].map(JOURNAL_VILLAGE_GROUP_LABELS)
+    village_stats["group_order"] = village_stats["village_group"].map(
+        {category: order for order, category in enumerate(VISIBLE_CATEGORY_ORDER)}
     )
+    village_stats = village_stats.sort_values(
+        ["group_order", "median", "Village"],
+        ascending=[True, False, True],
+        kind="mergesort",
+    )
+    village_stats["_y_position"] = range(len(village_stats))
+    fill_colors = {
+        "rendah": "rgba(185, 28, 28, 0.32)",
+        "sedang": "rgba(234, 179, 8, 0.34)",
+        "tinggi": "rgba(20, 184, 166, 0.34)",
+        "sangat tinggi": "rgba(37, 99, 235, 0.30)",
+    }
+    line_colors = {
+        "rendah": "#991b1b",
+        "sedang": "#a16207",
+        "tinggi": "#0f766e",
+        "sangat tinggi": "#1d4ed8",
+    }
+    threshold_bands = [
+        (0.00, 0.60, "Low", "rgba(185, 28, 28, 0.045)"),
+        (0.60, 0.70, "Moderate", "rgba(234, 179, 8, 0.055)"),
+        (0.70, 0.80, "High", "rgba(20, 184, 166, 0.055)"),
+        (0.80, 1.00, "Very high", "rgba(37, 99, 235, 0.045)"),
+    ]
+    mean_marker_color = "#111827"
+    total_villages = len(village_stats)
+    chart_height = max(760, min(3400, 220 + total_villages * 24))
+    label_font_size = 9 if total_villages > 80 else 10 if total_villages > 45 else 11
+
+    def _format_hover_value(value: Any) -> str:
+        return format_journal_number(value, 3)
+
+    def _format_households(value: Any) -> str:
+        return format_journal_number(value, 0)
+
+    village_stats["tick_label"] = village_stats.apply(
+        lambda row: f"{row['Village']} ({_format_households(row['households'])} HH)",
+        axis=1,
+    )
+
+    category_counts = village_stats["village_group"].value_counts().to_dict()
+    category_summary = ", ".join(
+        f"{JOURNAL_VILLAGE_GROUP_LABELS[category]}: {int(category_counts.get(category, 0))}"
+        for category in VISIBLE_CATEGORY_ORDER
+    )
+    title_text = (
+        "Household Digital Inclusion Score Distribution by Village"
+        f"<br><sup>{total_villages:,} villages shown. {category_summary}</sup>"
+    )
+
+    fig = go.Figure()
+    for x0, x1, label, fillcolor in threshold_bands:
+        fig.add_vrect(
+            x0=x0,
+            x1=x1,
+            fillcolor=fillcolor,
+            line_width=0,
+            layer="below",
+        )
+        fig.add_annotation(
+            x=(x0 + x1) / 2,
+            y=1.025,
+            xref="x",
+            yref="paper",
+            text=label,
+            showarrow=False,
+            font=dict(size=11, color="#64748b"),
+        )
+
+    for threshold in (0.60, 0.70, 0.80):
+        fig.add_vline(
+            x=threshold,
+            line=dict(color="#94a3b8", width=1.1, dash="dot"),
+            layer="below",
+        )
+
+    for _, row in village_stats.iterrows():
+        village = str(row["Village"])
+        village_group = row.get("village_group", "sedang")
+        group_label = row.get("Village Group") or JOURNAL_VILLAGE_GROUP_LABELS.get(village_group, "")
+        hovertemplate = (
+            f"<b>{village}</b><br>"
+            f"Group: {group_label}<br>"
+            f"Households: {_format_households(row['households'])}<br>"
+            f"Minimum: {_format_hover_value(row['minimum'])}<br>"
+            "Q1: %{q1:.3f}<br>"
+            "Median: %{median:.3f}<br>"
+            "Q3: %{q3:.3f}<br>"
+            f"Maximum: {_format_hover_value(row['maximum'])}<br>"
+            f"Mean: {_format_hover_value(row['mean'])}<extra></extra>"
+        )
+        fig.add_trace(
+            go.Box(
+                q1=[row["q1"]],
+                median=[row["median"]],
+                q3=[row["q3"]],
+                lowerfence=[row["minimum"]],
+                upperfence=[row["maximum"]],
+                y=[row["_y_position"]],
+                orientation="h",
+                name=village,
+                boxpoints=False,
+                fillcolor=fill_colors.get(village_group, "rgba(37, 99, 235, 0.24)"),
+                hovertemplate=hovertemplate,
+                line=dict(color=line_colors.get(village_group, "#1d4ed8"), width=1.8),
+                marker=dict(color=line_colors.get(village_group, "#1d4ed8")),
+                showlegend=False,
+                whiskerwidth=0.8,
+                width=0.58,
+            )
+        )
+
+    fig.add_trace(
+        go.Scatter(
+            x=village_stats["mean"],
+            y=village_stats["_y_position"],
+            mode="markers",
+            marker=dict(
+                color=mean_marker_color,
+                symbol="diamond",
+                size=7,
+                line=dict(color="#ffffff", width=0.8),
+            ),
+            name="Mean",
+            customdata=village_stats[["Village", "Village Group", "households", "median"]],
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>"
+                "Group: %{customdata[1]}<br>"
+                "Households: %{customdata[2]:,.0f}<br>"
+                "Mean: %{x:.3f}<br>"
+                "Median: %{customdata[3]:.3f}<extra></extra>"
+            ),
+            showlegend=True,
+        )
+    )
+
+    overall_mean = float(plot_df["iid_rumah_tangga"].mean())
+    fig.add_vline(
+        x=overall_mean,
+        line=dict(color="#0f172a", width=1.4, dash="dash"),
+        annotation_text=f"Overall mean {overall_mean:.3f}",
+        annotation_position="bottom right",
+        annotation_font=dict(size=11, color="#0f172a"),
+    )
+
+    for category in VISIBLE_CATEGORY_ORDER:
+        category_rows = village_stats.loc[village_stats["village_group"].eq(category)]
+        if category_rows.empty:
+            continue
+        y0 = float(category_rows["_y_position"].min()) - 0.5
+        y1 = float(category_rows["_y_position"].max()) + 0.5
+        fig.add_hrect(
+            y0=y0,
+            y1=y1,
+            fillcolor="#f8fafc",
+            opacity=0.52,
+            line_width=0,
+            layer="below",
+        )
+        fig.add_annotation(
+            x=1.01,
+            y=(y0 + y1) / 2,
+            xref="paper",
+            yref="y",
+            text=JOURNAL_VILLAGE_GROUP_LABELS.get(category, str(category).title()),
+            showarrow=False,
+            xanchor="left",
+            font=dict(size=11, color="#64748b"),
+        )
+
     fig.update_layout(
-        title="Household Digital Inclusion Scores by Village",
-        xaxis_title="Village",
-        yaxis_title="Household Digital Inclusion Index",
-        margin=dict(l=20, r=20, t=60, b=80),
-        showlegend=False,
+        title=title_text,
+        xaxis_title="Household Digital Inclusion Index",
+        yaxis_title="Village (households)",
+        height=chart_height,
+        margin=dict(l=190, r=130, t=118, b=58),
+        legend=dict(orientation="h", yanchor="bottom", y=1.07, xanchor="right", x=1),
+        showlegend=True,
+        boxmode="overlay",
     )
-    fig.update_xaxes(tickangle=-45, automargin=True)
-    fig.update_yaxes(range=[0, 1])
+    fig.update_xaxes(range=[0, 1], tickformat=".2f", dtick=0.1, fixedrange=False)
+    fig.update_yaxes(
+        tickmode="array",
+        tickvals=village_stats["_y_position"].tolist(),
+        ticktext=village_stats["tick_label"].tolist(),
+        range=[total_villages - 0.5, -0.5],
+        tickfont=dict(size=label_font_size, color="#334155"),
+        fixedrange=False,
+    )
     return apply_publication_figure_style(fig)
 
 
@@ -2679,7 +3585,7 @@ def build_journal_vulnerability_summary_df(household_df: pd.DataFrame) -> pd.Dat
     if household_df.empty:
         return pd.DataFrame()
     plot_df = household_df.copy()
-    plot_df["_is_vulnerable"] = plot_df["kategori_iid_rt"].astype(str).isin({"sangat rendah", "rendah"})
+    plot_df["_is_vulnerable"] = compute_journal_low_inclusion_mask(plot_df)
     group_columns = [column for column in ("kode_deskel", "deskel") if column in plot_df.columns]
     if not group_columns:
         group_columns = ["Digital Inclusion Category"]
@@ -2763,68 +3669,184 @@ def build_journal_vulnerability_figure(
     return apply_publication_figure_style(fig)
 
 
-def build_journal_village_ranking_table(village_df: pd.DataFrame) -> pd.DataFrame:
-    ranking_df = village_df.sort_values("iid_desa", ascending=False, kind="mergesort").copy()
-    ranking_df["Rank"] = range(1, len(ranking_df) + 1)
+def build_journal_village_group_summary_df(village_df: pd.DataFrame) -> pd.DataFrame:
+    summary_columns = [
+        "village_iid_group",
+        "Villages",
+        "Share",
+        "Village Group",
+        "Index Range",
+        "Governance Meaning",
+    ]
+    if village_df.empty or "iid_desa" not in village_df.columns:
+        return pd.DataFrame(columns=summary_columns)
+
+    grouped_df = add_journal_village_group_columns(village_df)
+    grouped_df = grouped_df.loc[grouped_df["village_iid_group"].isin(VISIBLE_CATEGORY_ORDER)].copy()
+    if grouped_df.empty:
+        return pd.DataFrame(columns=summary_columns)
+
+    counts = (
+        grouped_df["village_iid_group"]
+        .value_counts()
+        .reindex(VISIBLE_CATEGORY_ORDER, fill_value=0)
+        .rename_axis("village_iid_group")
+        .reset_index(name="Villages")
+    )
+    total_villages = max(int(counts["Villages"].sum()), 1)
+    counts["Share"] = counts["Villages"] / total_villages
+    counts["Village Group"] = counts["village_iid_group"].map(JOURNAL_VILLAGE_GROUP_LABELS)
+    counts["Index Range"] = counts["village_iid_group"].map(format_journal_village_group_index_range)
+    counts["Governance Meaning"] = counts["village_iid_group"].map(JOURNAL_VILLAGE_GROUP_GOVERNANCE_MEANINGS)
+    return counts
+
+
+def build_journal_village_group_table(village_df: pd.DataFrame) -> pd.DataFrame:
+    grouped_df = add_journal_village_group_columns(village_df)
+    if grouped_df.empty or "village_iid_group" not in grouped_df.columns:
+        return pd.DataFrame()
+
+    grouped_df = grouped_df.loc[grouped_df["village_iid_group"].isin(VISIBLE_CATEGORY_ORDER)].copy()
+    group_order = {category: order for order, category in enumerate(VISIBLE_CATEGORY_ORDER)}
+    grouped_df["_village_group_order"] = grouped_df["village_iid_group"].map(group_order)
+    grouped_df = grouped_df.sort_values(["_village_group_order", "Village"], kind="mergesort")
     display_columns = [
-        "Rank",
         "Village",
+        "Village Digital Inclusion Group",
+        "Village Digital Inclusion Range",
+        "Governance Meaning",
         "jumlah_kk",
         "iid_desa",
         "ikd_desa",
+        "Village Digital Deprivation Interpretation",
         "gini_iid_rumah_tangga",
         "Within-Village Gini Category",
+        "dds_desa",
+        "DDS Tertile Interpretation",
     ]
-    display_columns = [column for column in display_columns if column in ranking_df.columns]
-    ranking_df = ranking_df[display_columns].rename(
+    display_columns = [column for column in display_columns if column in grouped_df.columns]
+    grouped_df = grouped_df[display_columns].rename(
         columns={
+            "Village Digital Inclusion Group": "Village Group",
+            "Village Digital Inclusion Range": "Index Range",
             "jumlah_kk": "Households",
             "iid_desa": "Village Digital Inclusion Index",
             "ikd_desa": "Village Digital Deprivation Score",
             "gini_iid_rumah_tangga": "Within-Village Gini",
+            "dds_desa": "Digital Deprivation and Within-Village Inequality Score",
         }
     )
-    return ranking_df
+    return grouped_df
 
 
-def build_journal_village_index_bar_figure(
+def build_journal_village_group_download_df(village_df: pd.DataFrame) -> pd.DataFrame:
+    download_columns = [
+        "Village",
+        "Village Digital Inclusion Index",
+        "Village Digital Inclusion Interpretation",
+        "Village Group",
+        "Index Range",
+        "Governance Meaning",
+    ]
+    if village_df.empty or "iid_desa" not in village_df.columns:
+        return pd.DataFrame(columns=download_columns)
+
+    grouped_df = add_journal_village_group_columns(village_df)
+    if "Village" not in grouped_df.columns:
+        grouped_df = add_journal_village_name(grouped_df)
+    grouped_df = grouped_df.loc[grouped_df["village_iid_group"].isin(VISIBLE_CATEGORY_ORDER)].copy()
+    if grouped_df.empty:
+        return pd.DataFrame(columns=download_columns)
+
+    grouped_df["Village Digital Inclusion Index"] = pd.to_numeric(grouped_df["iid_desa"], errors="coerce")
+    if "Village Digital Inclusion Interpretation" not in grouped_df.columns:
+        if "interpretasi_iid_desa" in grouped_df.columns:
+            grouped_df["Village Digital Inclusion Interpretation"] = grouped_df["interpretasi_iid_desa"].map(
+                format_village_iid_interpretation_label
+            )
+        else:
+            grouped_df["Village Digital Inclusion Interpretation"] = pd.NA
+    grouped_df["Village Digital Inclusion Interpretation"] = grouped_df[
+        "Village Digital Inclusion Interpretation"
+    ].fillna(grouped_df["Village Digital Inclusion Group"])
+    grouped_df["Village Group"] = grouped_df["Village Digital Inclusion Group"]
+    grouped_df["Index Range"] = grouped_df["Village Digital Inclusion Range"]
+
+    group_order = {category: order for order, category in enumerate(VISIBLE_CATEGORY_ORDER)}
+    grouped_df["_village_group_order"] = grouped_df["village_iid_group"].map(group_order)
+    grouped_df = grouped_df.sort_values(
+        ["_village_group_order", "Village", "Village Digital Inclusion Index"],
+        ascending=[True, True, False],
+        kind="mergesort",
+    )
+    return grouped_df[download_columns]
+
+
+def build_journal_village_group_figure(
     village_df: pd.DataFrame,
-    mode: str,
-    top_n: int = 15,
-    offset: int = 0,
+    selected_group: str | None,
 ) -> go.Figure:
-    if mode == "highest":
-        plot_df = (
-            village_df.sort_values(["iid_desa", "Village"], ascending=[False, True], kind="mergesort")
-            .iloc[offset : offset + top_n]
-            .sort_values("iid_desa")
-        )
-        title = "Village Digital Inclusion Index Ranked from Highest"
-        color = "#0f766e"
-    else:
-        plot_df = (
-            village_df.sort_values(["iid_desa", "Village"], ascending=[True, True], kind="mergesort")
-            .iloc[offset : offset + top_n]
-            .sort_values("iid_desa")
-        )
-        title = "Village Digital Inclusion Index Ranked from Lowest"
-        color = "#b91c1c"
+    group_color_map = {
+        JOURNAL_VILLAGE_GROUP_LABELS[category]: CATEGORY_COLORS[category]
+        for category in VISIBLE_CATEGORY_ORDER
+    }
 
+    if selected_group is None:
+        summary_df = build_journal_village_group_summary_df(village_df)
+        fig = px.bar(
+            summary_df,
+            x="Village Group",
+            y="Villages",
+            color="Village Group",
+            color_discrete_map=group_color_map,
+            category_orders={
+                "Village Group": [JOURNAL_VILLAGE_GROUP_LABELS[category] for category in VISIBLE_CATEGORY_ORDER]
+            },
+            text_auto=True,
+            hover_data={"Share": ":.1%", "Index Range": True, "Governance Meaning": True},
+        )
+        fig.update_layout(
+            title="Village Distribution by Digital Inclusion Group",
+            xaxis_title="Village Group",
+            yaxis_title="Number of Villages",
+            margin=dict(l=20, r=20, t=60, b=20),
+            showlegend=False,
+        )
+        apply_bar_value_text_format(fig, "y")
+        return apply_publication_figure_style(fig, integer_y=True)
+
+    plot_df = add_journal_village_group_columns(village_df)
+    plot_df = plot_df.loc[plot_df["village_iid_group"].eq(selected_group)].copy()
+    plot_df = plot_df.sort_values("Village", ascending=False, kind="mergesort")
+    plot_df["Village Digital Inclusion Index"] = plot_df["iid_desa"]
+    if "ikd_desa" in plot_df.columns:
+        plot_df["Village Digital Deprivation Score"] = plot_df["ikd_desa"]
+    plot_df["Households"] = plot_df["jumlah_kk"] if "jumlah_kk" in plot_df.columns else pd.NA
+    plot_df["Village Group"] = plot_df["Village Digital Inclusion Group"]
+    title_group = JOURNAL_VILLAGE_GROUP_LABELS.get(selected_group, "Selected group")
+    hover_data = {
+        "Households": ":,.0f",
+        "Village Digital Inclusion Index": ":.3f",
+    }
+    if "Village Digital Deprivation Score" in plot_df.columns:
+        hover_data["Village Digital Deprivation Score"] = ":.3f"
     fig = px.bar(
         plot_df,
-        x="iid_desa",
+        x="Village Digital Inclusion Index",
         y="Village",
         orientation="h",
         text_auto=".3f",
-        color_discrete_sequence=[color],
-        hover_data={"jumlah_kk": ":,.0f", "ikd_desa": ":.3f", "gini_iid_rumah_tangga": ":.3f"},
+        color="Village Group",
+        color_discrete_map=group_color_map,
+        hover_data=hover_data,
     )
     fig.update_layout(
-        title=title,
+        title=f"{title_group} Villages by Digital Inclusion Index",
         xaxis_title="Village Digital Inclusion Index",
         yaxis_title="Village",
         margin=dict(l=20, r=20, t=60, b=20),
         showlegend=False,
+        height=min(900, max(420, 44 * len(plot_df) + 120)),
     )
     fig.update_xaxes(range=[0, 1])
     return apply_publication_figure_style(fig)
@@ -3001,13 +4023,25 @@ def build_journal_lagging_dimension_table(village_df: pd.DataFrame, bottom_n: in
     return pd.DataFrame(rows)
 
 
+def ensure_village_dds_columns(village_df: pd.DataFrame) -> pd.DataFrame:
+    enriched_df = village_df.copy()
+    if "ikd_desa" not in enriched_df.columns and "iid_desa" in enriched_df.columns:
+        enriched_df["ikd_desa"] = 1 - pd.to_numeric(enriched_df["iid_desa"], errors="coerce")
+    if {"ikd_desa", "gini_iid_rumah_tangga"}.issubset(enriched_df.columns):
+        enriched_df["dds_desa"] = iid_pipeline.compute_digital_deprivation_within_inequality_score(enriched_df)
+        enriched_df, _ = iid_pipeline.apply_relative_dds_classification(enriched_df)
+        enriched_df["DDS Tertile Interpretation"] = enriched_df["interpretasi_dds_desa"].map(format_gini_label)
+    return enriched_df
+
+
 def build_journal_deprivation_scatter_figure(village_df: pd.DataFrame) -> go.Figure:
-    plot_df = village_df.dropna(subset=["iid_desa", "gini_iid_rumah_tangga"]).copy()
+    plot_df = ensure_village_dds_columns(village_df).dropna(subset=["iid_desa", "gini_iid_rumah_tangga"]).copy()
     if "ikd_desa" not in plot_df.columns:
         plot_df["ikd_desa"] = 1 - plot_df["iid_desa"]
     plot_df["Village Digital Inclusion Index"] = plot_df["iid_desa"]
     plot_df["Village Digital Deprivation Score"] = plot_df["ikd_desa"]
     plot_df["Within-Village Gini"] = plot_df["gini_iid_rumah_tangga"]
+    plot_df["DDS"] = plot_df["dds_desa"] if "dds_desa" in plot_df.columns else pd.NA
     plot_df["Households"] = plot_df["jumlah_kk"] if "jumlah_kk" in plot_df.columns else 1
     fig = px.scatter(
         plot_df,
@@ -3020,6 +4054,7 @@ def build_journal_deprivation_scatter_figure(village_df: pd.DataFrame) -> go.Fig
             "Village Digital Inclusion Index": ":.3f",
             "Village Digital Deprivation Score": ":.3f",
             "Within-Village Gini": ":.3f",
+            "DDS": ":.3f",
             "Households": ":,.0f",
         },
         color_continuous_scale=["#0f766e", "#f59e0b", "#b91c1c"],
@@ -3050,54 +4085,200 @@ def build_journal_deprivation_scatter_figure(village_df: pd.DataFrame) -> go.Fig
     return apply_publication_figure_style(fig)
 
 
+def build_journal_governance_priority_typology_detail_df(village_df: pd.DataFrame) -> pd.DataFrame:
+    if village_df.empty or not {"iid_desa", "gini_iid_rumah_tangga"}.issubset(village_df.columns):
+        return pd.DataFrame()
+
+    typology_df = ensure_village_dds_columns(village_df).dropna(subset=["iid_desa", "gini_iid_rumah_tangga"]).copy()
+    if typology_df.empty:
+        return pd.DataFrame()
+
+    typology_df["iid_desa"] = pd.to_numeric(typology_df["iid_desa"], errors="coerce")
+    typology_df["gini_iid_rumah_tangga"] = pd.to_numeric(typology_df["gini_iid_rumah_tangga"], errors="coerce")
+    typology_df = typology_df.dropna(subset=["iid_desa", "gini_iid_rumah_tangga"])
+    if typology_df.empty:
+        return pd.DataFrame()
+    if "Village" not in typology_df.columns:
+        typology_df["Village"] = typology_df["deskel"] if "deskel" in typology_df.columns else typology_df.index.astype(str)
+
+    mean_index = float(typology_df["iid_desa"].mean())
+    mean_gini = float(typology_df["gini_iid_rumah_tangga"].mean())
+    low_index_mask = typology_df["iid_desa"].lt(mean_index)
+    high_gini_mask = typology_df["gini_iid_rumah_tangga"].ge(mean_gini)
+    definitions = [
+        (
+            "Low index-high Gini",
+            low_index_mask & high_gini_mask,
+            "Low index, high Gini",
+            "Desa tertinggal dan timpang",
+            "Prioritas sangat tinggi",
+        ),
+        (
+            "Low index-low Gini",
+            low_index_mask & ~high_gini_mask,
+            "Low index, low Gini",
+            "Desa tertinggal secara merata",
+            "Intervensi struktural desa",
+        ),
+        (
+            "High index-high Gini",
+            ~low_index_mask & high_gini_mask,
+            "High index, high Gini",
+            "Desa relatif maju, tetapi eksklusif",
+            "Intervensi kelompok rentan",
+        ),
+        (
+            "High index-low Gini",
+            ~low_index_mask & ~high_gini_mask,
+            "High index, low Gini",
+            "Desa relatif inklusif",
+            "Model praktik baik",
+        ),
+    ]
+    rows: list[dict[str, Any]] = []
+    for order, (quadrant, mask, condition, interpretation, priority) in enumerate(definitions, start=1):
+        quadrant_df = typology_df.loc[mask].copy()
+        if quadrant_df.empty:
+            rows.append(
+                {
+                    "_order": order,
+                    "Quadrant": quadrant,
+                    "Village": pd.NA,
+                    "Condition": condition,
+                    "Interpretation": interpretation,
+                    "Governance priority": priority,
+                    "Village Digital Inclusion Index": pd.NA,
+                    "Village Digital Deprivation Score": pd.NA,
+                    "Within-Village Gini": pd.NA,
+                    "DDS": pd.NA,
+                    "Typology cutoff": f"IID mean={mean_index:.3f}; Gini mean={mean_gini:.3f}",
+                }
+            )
+            continue
+        for _, row in quadrant_df.sort_values("Village", kind="mergesort").iterrows():
+            rows.append(
+                {
+                    "_order": order,
+                    "Quadrant": quadrant,
+                    "Village": row.get("Village", row.get("deskel", pd.NA)),
+                    "Condition": condition,
+                    "Interpretation": interpretation,
+                    "Governance priority": priority,
+                    "Village Digital Inclusion Index": row.get("iid_desa", pd.NA),
+                    "Village Digital Deprivation Score": row.get("ikd_desa", pd.NA),
+                    "Within-Village Gini": row.get("gini_iid_rumah_tangga", pd.NA),
+                    "DDS": row.get("dds_desa", pd.NA),
+                    "Typology cutoff": f"IID mean={mean_index:.3f}; Gini mean={mean_gini:.3f}",
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def build_journal_governance_priority_typology_table_html(village_df: pd.DataFrame) -> str:
+    detail_df = build_journal_governance_priority_typology_detail_df(village_df)
+    if detail_df.empty:
+        return ""
+
+    summary_rows = []
+    for _, group_df in detail_df.groupby(["_order", "Quadrant", "Condition", "Interpretation", "Governance priority"], sort=True):
+        village_names = group_df["Village"].dropna().astype(str).tolist()
+        summary_rows.append(
+            {
+                "Quadrant": group_df["Quadrant"].iloc[0],
+                "Number of Village": len(village_names),
+                "Village names": ", ".join(village_names) if village_names else "-",
+                "Condition": group_df["Condition"].iloc[0],
+                "Interpretation": group_df["Interpretation"].iloc[0],
+                "Governance priority": group_df["Governance priority"].iloc[0],
+            }
+        )
+    body_rows = "".join(
+        (
+            "<tr>"
+            f"<td>{escape(row['Quadrant'])}</td>"
+            f"<td>{escape(format_journal_number(row['Number of Village'], 0))}</td>"
+            f"<td>{escape(row['Village names'])}</td>"
+            f"<td>{escape(row['Condition'])}</td>"
+            f"<td>{escape(row['Interpretation'])}</td>"
+            f"<td>{escape(row['Governance priority'])}</td>"
+            "</tr>"
+        )
+        for row in summary_rows
+    )
+    return f"""
+    <div class="journal-paper-table-wrap journal-paper-table-wide">
+        <p class="journal-paper-table-title"><strong>Table X.</strong> Governance Priority Typology Based on Village Digital Inclusion and Within-Village Inequality</p>
+        <table class="journal-paper-table">
+            <thead>
+                <tr>
+                    <th>Quadrant</th>
+                    <th>Number of Village</th>
+                    <th>Village names</th>
+                    <th>Condition</th>
+                    <th>Interpretation</th>
+                    <th>Governance priority</th>
+                </tr>
+            </thead>
+            <tbody>
+                {body_rows}
+            </tbody>
+        </table>
+    </div>
+    """
+
+
 def build_journal_deprivation_bar_figure(
     village_df: pd.DataFrame,
     top_n: int = 15,
     offset: int = 0,
 ) -> go.Figure:
-    plot_df = village_df.copy()
+    plot_df = ensure_village_dds_columns(village_df)
     if "ikd_desa" not in plot_df.columns:
         plot_df["ikd_desa"] = 1 - plot_df["iid_desa"]
     plot_df = (
-        plot_df.sort_values(["ikd_desa", "gini_iid_rumah_tangga"], ascending=[False, False], kind="mergesort")
+        plot_df.sort_values(["dds_desa", "ikd_desa", "gini_iid_rumah_tangga"], ascending=[False, False, False], kind="mergesort")
         .iloc[offset : offset + top_n]
-        .sort_values("ikd_desa")
+        .sort_values("dds_desa")
     )
     fig = px.bar(
         plot_df,
-        x="ikd_desa",
+        x="dds_desa",
         y="Village",
         orientation="h",
         color="gini_iid_rumah_tangga",
         color_continuous_scale=["#0f766e", "#f59e0b", "#b91c1c"],
         text_auto=".3f",
-        hover_data={"iid_desa": ":.3f", "gini_iid_rumah_tangga": ":.3f", "jumlah_kk": ":,.0f"},
+        hover_data={"iid_desa": ":.3f", "ikd_desa": ":.3f", "gini_iid_rumah_tangga": ":.3f", "jumlah_kk": ":,.0f"},
     )
     fig.update_layout(
-        title="Highest Village Digital Deprivation Scores",
-        xaxis_title="Village Digital Deprivation Score",
+        title="Highest Digital Deprivation and Within-Village Inequality Scores",
+        xaxis_title="DDS",
         yaxis_title="Village",
         coloraxis_colorbar_title="Within-Village Gini",
         margin=dict(l=20, r=20, t=60, b=20),
     )
-    fig.update_xaxes(range=[0, max(float(plot_df["ikd_desa"].max()) * 1.15, 0.05)])
+    fig.update_xaxes(range=[0, max(float(plot_df["dds_desa"].max()) * 1.15, 0.05)])
     return apply_publication_figure_style(fig)
 
 
 def build_journal_deprivation_priority_table(village_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    priority_df = village_df.copy()
+    priority_df = ensure_village_dds_columns(village_df)
     if "ikd_desa" not in priority_df.columns:
         priority_df["ikd_desa"] = 1 - priority_df["iid_desa"]
-    high_gini_threshold = priority_df["gini_iid_rumah_tangga"].quantile(0.67)
-    high_gini_mask = priority_df["gini_iid_rumah_tangga"].ge(high_gini_threshold)
+    high_gini_mask = pd.Series(False, index=priority_df.index)
     if "Within-Village Gini Category" in priority_df.columns:
         high_gini_mask = high_gini_mask | priority_df["Within-Village Gini Category"].astype(str).str.lower().eq("high")
+    elif "interpretasi_gini" in priority_df.columns:
+        high_gini_mask = high_gini_mask | priority_df["interpretasi_gini"].astype(str).str.lower().isin({"tinggi", "high"})
+    elif "gini_iid_rumah_tangga" in priority_df.columns:
+        priority_df, _ = iid_pipeline.apply_relative_gini_classification(priority_df)
+        high_gini_mask = high_gini_mask | priority_df["interpretasi_gini"].astype(str).str.lower().isin({"tinggi", "high"})
     moderate_high_inequality_df = priority_df.loc[
         priority_df["iid_desa"].between(0.4, 0.6, inclusive="both") & high_gini_mask
     ].copy()
     priority_df = priority_df.sort_values(
-        ["ikd_desa", "gini_iid_rumah_tangga"],
-        ascending=[False, False],
+        ["dds_desa", "ikd_desa", "gini_iid_rumah_tangga"],
+        ascending=[False, False, False],
         kind="mergesort",
     )
 
@@ -3108,6 +4289,8 @@ def build_journal_deprivation_priority_table(village_df: pd.DataFrame) -> tuple[
         "ikd_desa",
         "gini_iid_rumah_tangga",
         "Within-Village Gini Category",
+        "dds_desa",
+        "DDS Tertile Interpretation",
     ]
     display_columns = [column for column in display_columns if column in priority_df.columns]
     renamed_columns = {
@@ -3115,6 +4298,7 @@ def build_journal_deprivation_priority_table(village_df: pd.DataFrame) -> tuple[
         "iid_desa": "Village Digital Inclusion Index",
         "ikd_desa": "Village Digital Deprivation Score",
         "gini_iid_rumah_tangga": "Within-Village Gini",
+        "dds_desa": "Digital Deprivation and Within-Village Inequality Score",
     }
     priority_display_df = priority_df[display_columns].rename(columns=renamed_columns)
     moderate_display_df = moderate_high_inequality_df[display_columns].rename(columns=renamed_columns)
@@ -3187,7 +4371,7 @@ def render_top_summary_metrics(tables: dict[str, pd.DataFrame]) -> None:
         extra_cols[1].metric("Dominant Household Category", dominant_category)
     else:
         extra_cols[1].metric("Dominant Household Category", "-")
-    extra_cols[2].metric("Relative Gini Category", str(overall_category) if pd.notna(overall_category) else "-")
+    extra_cols[2].metric("Gini Tertile Category", str(overall_category) if pd.notna(overall_category) else "-")
 
 
 def build_household_resource_summary(detail_df: pd.DataFrame) -> dict[str, float]:
@@ -3391,6 +4575,48 @@ def build_top_bottom_desa_figure(desa_df: pd.DataFrame, mode: str) -> go.Figure:
     return apply_publication_figure_style(fig)
 
 
+def build_village_iid_category_distribution_df(desa_df: pd.DataFrame) -> pd.DataFrame:
+    if desa_df.empty or "kategori_iid_desa" not in desa_df.columns:
+        return pd.DataFrame()
+    counts = (
+        desa_df["kategori_iid_desa"]
+        .astype("string")
+        .value_counts()
+        .reindex(VISIBLE_CATEGORY_ORDER, fill_value=0)
+        .rename_axis("kategori_iid_desa")
+        .reset_index(name="jumlah_desa")
+    )
+    total = max(int(counts["jumlah_desa"].sum()), 1)
+    counts["persentase_desa"] = counts["jumlah_desa"] / total
+    counts["rentang_iid_desa"] = counts["kategori_iid_desa"].map(format_iid_category_range)
+    counts["Village Digital Inclusion Category"] = counts["kategori_iid_desa"].map(format_iid_category_label)
+    return counts
+
+
+def build_village_iid_category_distribution_figure(category_df: pd.DataFrame) -> go.Figure:
+    plot_df = category_df.copy()
+    fig = px.bar(
+        plot_df,
+        x="Village Digital Inclusion Category",
+        y="jumlah_desa",
+        color="Village Digital Inclusion Category",
+        color_discrete_map=IID_CATEGORY_COLORS,
+        category_orders={"Village Digital Inclusion Category": IID_CATEGORY_ORDER_EN},
+        text_auto=True,
+        hover_data={"persentase_desa": ":.2%", "rentang_iid_desa": True},
+        labels={"jumlah_desa": "Villages", "persentase_desa": "Village Share", "rentang_iid_desa": "Index Range"},
+    )
+    fig.update_layout(
+        title="Villages by Digital Inclusion Category",
+        xaxis_title="Village Digital Inclusion Category",
+        yaxis_title="Number of Villages",
+        showlegend=False,
+        margin=dict(l=20, r=20, t=55, b=20),
+    )
+    apply_bar_value_text_format(fig, "y")
+    return apply_publication_figure_style(fig, integer_y=True)
+
+
 def build_dimension_profile_figure(desa_df: pd.DataFrame) -> go.Figure:
     rows: list[dict[str, Any]] = []
     for column, label in DIMENSION_LABELS.items():
@@ -3418,14 +4644,14 @@ def build_dimension_profile_figure(desa_df: pd.DataFrame) -> go.Figure:
 
 def build_gini_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
     plot_df = desa_df.copy()
-    plot_df["Relative Gini Category"] = plot_df["interpretasi_gini"].map(format_gini_label)
+    plot_df["Gini Tertile Category"] = plot_df["interpretasi_gini"].map(format_gini_label)
     fig = px.scatter(
         plot_df,
         x="iid_desa",
         y="gini_iid_rumah_tangga",
         size="jumlah_kk",
         hover_name="deskel",
-        color="Relative Gini Category",
+        color="Gini Tertile Category",
         color_discrete_map=GINI_COLORS,
         hover_data={
             "jumlah_kk": ":,.0f",
@@ -3440,10 +4666,10 @@ def build_gini_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
         },
     )
     fig.update_layout(
-        title="Village Digital Inclusion and Within-Village Gini by Relative Tertile",
+        title="Village Digital Inclusion and Within-Village Gini by Tertile Category",
         xaxis_title="Village Digital Inclusion Index",
         yaxis_title="Within-Village Gini of Household Scores",
-        legend_title_text="Relative Gini Category",
+        legend_title_text="Gini Tertile Category",
         margin=dict(l=20, r=20, t=55, b=20),
     )
     return apply_publication_figure_style(fig)
@@ -3496,6 +4722,78 @@ def build_ikd_tertile_distribution_figure(desa_df: pd.DataFrame) -> go.Figure:
     )
     apply_bar_value_text_format(fig, "y")
     return apply_publication_figure_style(fig, integer_y=True)
+
+
+def build_ikd_deprivation_download_df(desa_df: pd.DataFrame) -> pd.DataFrame:
+    download_columns = [
+        "Village",
+        "Village Digital Deprivation Score",
+        "Village Digital Deprivation Interpretation",
+        "Digital Deprivation Tertile",
+        "Relative Digital Deprivation Class",
+    ]
+    if desa_df.empty:
+        return pd.DataFrame(columns=download_columns)
+
+    download_df = desa_df.copy()
+    if "ikd_desa" not in download_df.columns and "iid_desa" in download_df.columns:
+        download_df["ikd_desa"] = 1 - pd.to_numeric(download_df["iid_desa"], errors="coerce")
+    if "ikd_desa" not in download_df.columns:
+        return pd.DataFrame(columns=download_columns)
+
+    download_df["ikd_desa"] = pd.to_numeric(download_df["ikd_desa"], errors="coerce")
+    if "interpretasi_ikd_desa" not in download_df.columns or download_df["interpretasi_ikd_desa"].isna().all():
+        download_df, _ = iid_pipeline.apply_relative_ikd_classification(download_df)
+    if "ikd_tertil" not in download_df.columns or "kategori_tertil" not in download_df.columns:
+        download_df = add_ikd_tertile_columns(download_df)
+    if "Village" not in download_df.columns:
+        download_df = add_journal_village_name(download_df)
+
+    download_df["Village Digital Deprivation Score"] = download_df["ikd_desa"]
+    if "interpretasi_ikd_desa" in download_df.columns:
+        download_df["Village Digital Deprivation Interpretation"] = download_df["interpretasi_ikd_desa"].map(
+            format_gini_label
+        )
+    elif "kategori_tertil" in download_df.columns:
+        download_df["Village Digital Deprivation Interpretation"] = download_df["kategori_tertil"]
+    else:
+        download_df["Village Digital Deprivation Interpretation"] = pd.NA
+    download_df["Digital Deprivation Tertile"] = (
+        download_df["ikd_tertil"] if "ikd_tertil" in download_df.columns else pd.NA
+    )
+    download_df["Relative Digital Deprivation Class"] = (
+        download_df["kategori_tertil"] if "kategori_tertil" in download_df.columns else pd.NA
+    )
+
+    download_df = download_df.dropna(subset=["Village Digital Deprivation Score"]).copy()
+    download_df = download_df.sort_values(
+        ["Village Digital Deprivation Score", "Village"],
+        ascending=[False, True],
+        kind="mergesort",
+    )
+    return download_df[download_columns]
+
+
+def build_ikd_deprivation_summary_download_df(deprivation_df: pd.DataFrame) -> pd.DataFrame:
+    summary_columns = [
+        "Village Digital Deprivation Interpretation",
+        "Villages",
+        "Village Share",
+    ]
+    if deprivation_df.empty or "Village Digital Deprivation Interpretation" not in deprivation_df.columns:
+        return pd.DataFrame(columns=summary_columns)
+
+    counts = (
+        deprivation_df["Village Digital Deprivation Interpretation"]
+        .astype("string")
+        .value_counts()
+        .reindex(IKD_RELATIVE_ORDER, fill_value=0)
+        .rename_axis("Village Digital Deprivation Interpretation")
+        .reset_index(name="Villages")
+    )
+    total_villages = max(int(counts["Villages"].sum()), 1)
+    counts["Village Share"] = counts["Villages"] / total_villages
+    return counts
 
 
 def build_ikd_tertile_scatter_figure(desa_df: pd.DataFrame) -> go.Figure:
@@ -3832,8 +5130,20 @@ def render_sidebar() -> None:
                 format_func=lambda value: str(translate_display_text(value)),
             )
             with st.expander("Calculation Options", expanded=False):
-                school_age_min = st.number_input("Minimum School Age", min_value=0, max_value=100, value=7, step=1)
-                school_age_max = st.number_input("Maximum School Age", min_value=0, max_value=100, value=25, step=1)
+                school_age_min = st.number_input(
+                    "Minimum School Age",
+                    min_value=0,
+                    max_value=100,
+                    value=int(iid_pipeline.SCHOOL_AGE_MIN),
+                    step=1,
+                )
+                school_age_max = st.number_input(
+                    "Maximum School Age",
+                    min_value=0,
+                    max_value=100,
+                    value=int(iid_pipeline.SCHOOL_AGE_MAX),
+                    step=1,
+                )
                 missing_threshold = st.slider("Core Indicator Missingness Threshold", min_value=0.0, max_value=1.0, value=0.20, step=0.01)
             submit = st.form_submit_button("Process and Display")
             if submit:
@@ -3945,12 +5255,12 @@ def render_overall_inequality_section(tables: dict[str, pd.DataFrame]) -> None:
 
     st.markdown("### Overall Inequality")
     st.caption(
-        "Each contribution is calculated from the total difference between a household digital inclusion score and the scores of other households. A larger contribution indicates that the household is farther from the overall pattern and therefore contributes more strongly to inequality. Relative Gini categories are based on tertiles across sampled villages."
+        "Each contribution is calculated from the total difference between a household digital inclusion score and the scores of other households. A larger contribution indicates that the household is farther from the overall pattern and therefore contributes more strongly to inequality. Gini categories use tertiles across villages."
     )
 
     metric_cols = st.columns(4)
     metric_cols[0].metric("Overall Gini", format_number(overall_summary["gini_iid_rumah_tangga"].iloc[0]))
-    metric_cols[1].metric("Relative Category", str(format_gini_label(overall_summary["interpretasi_gini"].iloc[0])))
+    metric_cols[1].metric("Tertile Category", str(format_gini_label(overall_summary["interpretasi_gini"].iloc[0])))
     metric_cols[2].metric("Households Included", format_number(overall_summary["jumlah_kk"].iloc[0], 0))
     metric_cols[3].metric("Leading Contributor", top_label)
 
@@ -3998,6 +5308,15 @@ def render_summary_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame)
     desa_df = tables.get("indeks_desa", pd.DataFrame())
     warga_df = tables.get("sebaran_warga_iid_rt", pd.DataFrame())
     household_df = get_household_rows(keluarga_df)
+
+    sample_characteristics_df = build_sample_characteristics_df(tables, detail_df)
+    if not sample_characteristics_df.empty:
+        st.markdown("### Table 3. Sample Characteristics")
+        st.dataframe(sample_characteristics_df, width="stretch", hide_index=True)
+        if sample_characteristics_df["Value"].astype("string").str.contains("Not available", na=False).any():
+            st.caption(
+                "Female-headed share is not computed because the current source data does not include a household-head sex/gender field."
+            )
 
     if not household_df.empty:
         chart_cols = st.columns(2)
@@ -4096,6 +5415,23 @@ def render_household_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFram
     if map_figure is not None:
         st.plotly_chart(map_figure, width="stretch", key="household_map")
 
+    low_category = resolve_low_household_category(household_df)
+    low_category_df = build_low_category_household_ranking_df(
+        household_df,
+        selected_desa,
+        all_villages_label,
+        low_category,
+    )
+    st.markdown(f"### Household Heads in the {format_iid_category_label(low_category)} Category")
+    st.caption(
+        "This table follows the Low category used in the chart above. Rows are ranked by IID-RT from the smallest to the largest within each village; the village name is shown once per village group."
+    )
+    if low_category_df.empty:
+        scope_label = "the selected village" if selected_desa != all_villages_label else "the available villages"
+        st.info(f"No household heads in the {format_iid_category_label(low_category)} category are available for {scope_label}.")
+    else:
+        st.dataframe(prepare_display_dataframe(low_category_df), width="stretch", hide_index=True)
+
     preview_columns = [column for column in ("family_id", "deskel", "iid_rumah_tangga", "kategori_iid_rt", "dimensi_A", "dimensi_B", "dimensi_C", "dimensi_D", "dimensi_E") if column in filtered_df.columns]
     st.markdown("### Valid Household Data Preview")
     st.dataframe(prepare_display_dataframe(filtered_df[preview_columns].head(200)), width="stretch", hide_index=True)
@@ -4112,12 +5448,11 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         st.warning("The village index table is not available.")
         return
 
-    numeric_columns = ["iid_desa", "gini_iid_rumah_tangga", "jumlah_kk"]
+    numeric_columns = ["iid_desa", "ikd_desa", "dds_desa", "gini_iid_rumah_tangga", "jumlah_kk"]
     for column in numeric_columns:
         if column in desa_df.columns:
             desa_df[column] = pd.to_numeric(desa_df[column], errors="coerce")
     if "ikd_desa" in desa_df.columns:
-        desa_df["ikd_desa"] = pd.to_numeric(desa_df["ikd_desa"], errors="coerce")
         desa_df = add_ikd_tertile_columns(desa_df)
 
     top_cols = st.columns(2)
@@ -4132,6 +5467,22 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
         key="desa_bottom_iid",
     )
 
+    village_category_df = build_village_iid_category_distribution_df(desa_df)
+    if not village_category_df.empty:
+        st.markdown("### Village Digital Inclusion Categories")
+        st.caption("Village IID categories use fixed thresholds: Low <0.60, Moderate >=0.60, High >=0.70, and Very High >=0.80.")
+        category_cols = st.columns(2)
+        category_cols[0].plotly_chart(
+            build_village_iid_category_distribution_figure(village_category_df),
+            width="stretch",
+            key="desa_iid_category_distribution",
+        )
+        category_preview_df = village_category_df[
+            ["kategori_iid_desa", "rentang_iid_desa", "jumlah_desa", "persentase_desa"]
+        ].copy()
+        category_preview_df["persentase_desa"] = category_preview_df["persentase_desa"].map(format_percent)
+        category_cols[1].dataframe(prepare_display_dataframe(category_preview_df), width="stretch", hide_index=True)
+
     mid_cols = st.columns(2)
     mid_cols[0].plotly_chart(
         build_dimension_profile_figure(desa_df),
@@ -4145,9 +5496,9 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     )
 
     if not gini_distribution_df.empty:
-        st.markdown("### Relative Gini Categories across Villages")
+        st.markdown("### Gini Tertile Categories across Villages")
         st.caption(
-            "Because all village Gini values fall within a low absolute range, relative inequality positions are distinguished with tertiles: the lowest third, middle third, and highest third within the study sample."
+            "Gini interpretation uses tertiles across sampled villages: the lowest third is Low, the middle third is Moderate, and the highest third is High."
         )
         preview_columns = [
             column
@@ -4219,7 +5570,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     if not desa_inequality_df.empty:
         st.markdown("### Village-Level Inequality Assessment")
         st.caption(
-            "This section reports the relative inequality category for each village and identifies the households that contribute most strongly to within-village inequality."
+            "This section reports the Gini tertile category for each village and identifies the households that contribute most strongly to within-village inequality."
         )
 
         selector_df = add_desa_label(desa_inequality_df[["kode_deskel", "deskel"]].drop_duplicates().copy())
@@ -4275,8 +5626,6 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
                 "indikator_F",
                 "indikator_G",
                 "indikator_H",
-                "indikator_I",
-                "indikator_J",
                 "indikator_K",
                 "indikator_L",
                 "indikator_M",
@@ -4331,7 +5680,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
 
             metric_cols = st.columns(4)
             metric_cols[0].metric("Village Gini", format_number(selected_summary["gini_iid_rumah_tangga"].iloc[0]))
-            metric_cols[1].metric("Relative Category", str(format_gini_label(selected_summary["interpretasi_gini"].iloc[0])))
+            metric_cols[1].metric("Tertile Category", str(format_gini_label(selected_summary["interpretasi_gini"].iloc[0])))
             metric_cols[2].metric("Households", format_number(selected_summary["jumlah_kk"].iloc[0], 0))
             metric_cols[3].metric(
                 "Leading Contributor in Category" if selected_category_inequality != all_categories_label else "Leading Contributor",
@@ -4394,7 +5743,7 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     if {"ikd_desa", "ikd_tertil", "kategori_tertil"}.issubset(desa_df.columns):
         st.markdown("### Villages by Relative Digital Deprivation Tertile")
         st.caption(
-            "The `ikd_desa` column is interpreted as the village digital deprivation score, calculated as the complement of `1 - iid_desa`. It is not the Village Welfare Index. Relative tertiles are computed from the `ikd_desa` distribution; higher values indicate higher relative digital deprivation within the sample."
+            "The `ikd_desa` column is interpreted as the village digital deprivation score, calculated as `1 - iid_desa`. It is not the Village Welfare Index. Relative tertiles are computed from the `ikd_desa` distribution; higher values indicate higher relative digital deprivation within the sample."
         )
         tertile_cols = st.columns(2)
         tertile_cols[0].plotly_chart(
@@ -4408,15 +5757,63 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
             key="desa_ikd_tertile_scatter",
         )
 
+        ikd_deprivation_download_df = build_ikd_deprivation_download_df(desa_df)
+        if not ikd_deprivation_download_df.empty:
+            st.download_button(
+                label="Download Digital Deprivation Village Distribution (Excel)",
+                data=excel_bytes_from_sheets(
+                    {
+                        "Deprivation Summary": build_ikd_deprivation_summary_download_df(
+                            ikd_deprivation_download_df
+                        ),
+                        "Village Deprivation": ikd_deprivation_download_df,
+                    }
+                ),
+                file_name="sebaran_deprivasi_digital_desa.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                width="stretch",
+                key="download_ikd_deprivation_distribution_excel",
+            )
+
         tertile_preview_columns = [
             column
-            for column in ("kode_deskel", "deskel", "jumlah_kk", "ikd_desa", "ikd_tertil", "kategori_tertil")
+            for column in ("kode_deskel", "deskel", "jumlah_kk", "ikd_desa", "interpretasi_ikd_desa", "ikd_tertil", "kategori_tertil")
             if column in desa_df.columns
         ]
         st.dataframe(
             prepare_display_dataframe(desa_df[tertile_preview_columns].sort_values("ikd_desa", ascending=True)),
             width="stretch",
             hide_index=True,
+        )
+
+    if {"dds_desa", "interpretasi_dds_desa"}.issubset(desa_df.columns):
+        st.markdown("### Digital Deprivation and Within-Village Inequality (DDS)")
+        st.caption(
+            "DDS = ((1 - IID-Desa) + Gini) / 2. The score combines 50% village digital deprivation and 50% within-village digital inequality; the DDS interpretation uses tertiles across villages."
+        )
+        dds_columns = [
+            column
+            for column in (
+                "kode_deskel",
+                "deskel",
+                "jumlah_kk",
+                "iid_desa",
+                "ikd_desa",
+                "gini_iid_rumah_tangga",
+                "dds_desa",
+                "interpretasi_dds_desa",
+            )
+            if column in desa_df.columns
+        ]
+        dds_preview_df = desa_df[dds_columns].sort_values("dds_desa", ascending=False, kind="mergesort").copy()
+        st.dataframe(prepare_display_dataframe(dds_preview_df), width="stretch", hide_index=True)
+        st.download_button(
+            label="Download DDS Village Table (CSV)",
+            data=csv_bytes(dds_preview_df),
+            file_name="dds_desa.csv",
+            mime="text/csv",
+            width="stretch",
+            key="download_dds_desa",
         )
 
     st.markdown("### Village Index Preview")
@@ -4451,8 +5848,8 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
         else pd.NA
     )
     vulnerable_share = pd.NA
-    if not household_df.empty and "kategori_iid_rt" in household_df.columns:
-        vulnerable_share = household_df["kategori_iid_rt"].astype(str).isin({"sangat rendah", "rendah"}).mean()
+    if not household_df.empty and "iid_rumah_tangga" in household_df.columns:
+        vulnerable_share = compute_journal_low_inclusion_mask(household_df).mean()
 
     st.markdown(
         build_journal_overview_table_html(
@@ -4536,20 +5933,19 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
             width="stretch",
             key="journal_category_share",
         )
+        st.markdown(
+            build_journal_household_distribution_table_html(category_share_df),
+            unsafe_allow_html=True,
+        )
 
         household_labeled_df = add_journal_village_name(household_df)
         village_options = sorted(household_labeled_df["Village"].dropna().astype(str).unique().tolist())
         if village_options:
-            box_start, box_end, _ = render_journal_page_selector(
-                st,
-                "Household boxplot village page",
-                len(village_options),
-                key="journal_box_village_page",
-            )
-            selected_box_villages = village_options[box_start:box_end]
+            st.caption(f"Box plot includes all {len(village_options):,} villages.")
             st.plotly_chart(
-                build_journal_household_boxplot_figure(household_df, selected_box_villages),
+                build_journal_household_boxplot_figure(household_df),
                 width="stretch",
+                config={"displaylogo": False, "responsive": True},
                 key="journal_household_boxplot",
             )
 
@@ -4594,75 +5990,94 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
     if village_df.empty:
         st.info("Village-level index records are not available.")
     else:
-        village_sorted_df = village_df.sort_values("iid_desa", ascending=False, kind="mergesort")
-        highest_village = village_sorted_df.head(1)
-        lowest_village = village_sorted_df.tail(1)
+        village_group_summary_df = build_journal_village_group_summary_df(village_df)
         village_metric_cols = st.columns(4)
-        village_metric_cols[0].metric(
-            "Highest Village Index",
-            format_journal_number(highest_village["iid_desa"].iloc[0]) if not highest_village.empty else "-",
-            highest_village["Village"].iloc[0] if not highest_village.empty else None,
-        )
-        village_metric_cols[1].metric(
-            "Lowest Village Index",
-            format_journal_number(lowest_village["iid_desa"].iloc[0]) if not lowest_village.empty else "-",
-            lowest_village["Village"].iloc[0] if not lowest_village.empty else None,
-        )
-        village_metric_cols[2].metric(
-            "Standard Deviation",
-            format_journal_number(pd.to_numeric(village_df["iid_desa"], errors="coerce").std()),
-        )
-        village_metric_cols[3].metric(
-            "Index Range",
-            format_journal_number(
-                pd.to_numeric(village_df["iid_desa"], errors="coerce").max()
-                - pd.to_numeric(village_df["iid_desa"], errors="coerce").min()
-            ),
-        )
+        for metric_col, category in zip(village_metric_cols, VISIBLE_CATEGORY_ORDER):
+            summary_row = village_group_summary_df.loc[
+                village_group_summary_df["village_iid_group"].eq(category)
+            ]
+            village_count = int(summary_row["Villages"].iloc[0]) if not summary_row.empty else 0
+            village_share = summary_row["Share"].iloc[0] if not summary_row.empty else 0
+            metric_col.metric(
+                JOURNAL_VILLAGE_GROUP_LABELS[category],
+                format_journal_number(village_count, 0),
+                format_journal_percent(village_share),
+                delta_color="off",
+            )
 
-        ranking_start, ranking_end, _ = render_journal_page_selector(
-            st,
-            "Village ranking page",
-            len(village_df),
-            key="journal_village_ranking_page",
+        st.markdown(
+            build_journal_village_group_distribution_table_html(village_df),
+            unsafe_allow_html=True,
         )
-
-        village_chart_cols = st.columns(2)
-        village_chart_cols[0].plotly_chart(
-            build_journal_village_index_bar_figure(
-                village_df,
-                "highest",
-                top_n=JOURNAL_VILLAGE_PAGE_SIZE,
-                offset=ranking_start,
-            ),
-            width="stretch",
-            key="journal_highest_village_index",
-        )
-        village_chart_cols[1].plotly_chart(
-            build_journal_village_index_bar_figure(
-                village_df,
-                "lowest",
-                top_n=JOURNAL_VILLAGE_PAGE_SIZE,
-                offset=ranking_start,
-            ),
-            width="stretch",
-            key="journal_lowest_village_index",
-        )
-
-        ranking_table_df = build_journal_village_ranking_table(village_df)
-        st.dataframe(
-            format_journal_dataframe(
-                ranking_table_df.iloc[ranking_start:ranking_end],
-                integer_columns=("Rank", "Households"),
-                score_columns=(
-                    "Village Digital Inclusion Index",
-                    "Village Digital Deprivation Score",
-                    "Within-Village Gini",
+        village_group_download_df = build_journal_village_group_download_df(village_df)
+        if not village_group_download_df.empty:
+            village_group_summary_download_df = village_group_summary_df.drop(
+                columns=["village_iid_group"],
+                errors="ignore",
+            )
+            st.download_button(
+                label="Download Village Group Details (Excel)",
+                data=excel_bytes_from_sheets(
+                    {
+                        "Table 5 Summary": village_group_summary_download_df,
+                        "Village Details": village_group_download_df,
+                    }
                 ),
+                file_name="village_group_distribution_iid_desa.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                width="stretch",
+                key="download_journal_village_group_excel",
+            )
+
+        village_group_options = ["all", *VISIBLE_CATEGORY_ORDER]
+        selected_group_option = st.selectbox(
+            "Village inclusion group",
+            options=village_group_options,
+            format_func=lambda category: (
+                "All" if category == "all" else JOURNAL_VILLAGE_GROUP_LABELS.get(category, str(category))
             ),
-            width="stretch",
-            hide_index=True,
+            key="journal_village_group_filter",
         )
+        selected_group = None if selected_group_option == "all" else selected_group_option
+        grouped_village_df = add_journal_village_group_columns(village_df)
+        if selected_group is None:
+            filtered_village_df = grouped_village_df.loc[
+                grouped_village_df["village_iid_group"].isin(VISIBLE_CATEGORY_ORDER)
+            ].copy()
+            st.caption(f"Showing all {len(filtered_village_df):,} village(s) across Table 5 groups.")
+        else:
+            filtered_village_df = grouped_village_df.loc[
+                grouped_village_df["village_iid_group"].eq(selected_group)
+            ].copy()
+            st.caption(
+                f"Showing {len(filtered_village_df):,} village(s) in "
+                f"{JOURNAL_VILLAGE_GROUP_LABELS[selected_group]}."
+            )
+
+        st.plotly_chart(
+            build_journal_village_group_figure(village_df, selected_group),
+            width="stretch",
+            key="journal_village_group_figure",
+        )
+
+        village_group_table_df = build_journal_village_group_table(filtered_village_df)
+        if village_group_table_df.empty:
+            st.info("No villages are available in the selected inclusion group.")
+        else:
+            st.dataframe(
+                format_journal_dataframe(
+                    village_group_table_df,
+                    integer_columns=("Households",),
+                    score_columns=(
+                        "Village Digital Inclusion Index",
+                        "Village Digital Deprivation Score",
+                        "Within-Village Gini",
+                        "Digital Deprivation and Within-Village Inequality Score",
+                    ),
+                ),
+                width="stretch",
+                hide_index=True,
+            )
 
         map_figure = build_journal_village_map_figure(village_df)
         if map_figure is not None:
@@ -4758,14 +6173,45 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
         st.info("Village-level deprivation and Gini statistics are not available.")
     else:
         st.caption(
-            "A village with a moderate mean index should not automatically be interpreted as inclusive when within-village inequality is high, because the mean may conceal digitally deprived households."
+            "DDS combines digital deprivation and within-village Gini with equal weights: ((1 - IID-Desa) + Gini) / 2. IKD, Gini, and DDS interpretations use tertiles across villages."
         )
+        journal_ikd_deprivation_download_df = build_ikd_deprivation_download_df(village_df)
+        if not journal_ikd_deprivation_download_df.empty:
+            st.download_button(
+                label="Download Digital Deprivation Village Distribution (Excel)",
+                data=excel_bytes_from_sheets(
+                    {
+                        "Deprivation Summary": build_ikd_deprivation_summary_download_df(
+                            journal_ikd_deprivation_download_df
+                        ),
+                        "Village Deprivation": journal_ikd_deprivation_download_df,
+                    }
+                ),
+                file_name="sebaran_deprivasi_digital_desa.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                width="stretch",
+                key="download_journal_ikd_deprivation_distribution_excel",
+            )
         deprivation_start, deprivation_end, _ = render_journal_page_selector(
             st,
             "Digital deprivation village page",
             len(village_df),
             key="journal_deprivation_page",
         )
+        typology_detail_df = build_journal_governance_priority_typology_detail_df(village_df)
+        st.markdown(
+            build_journal_governance_priority_typology_table_html(village_df),
+            unsafe_allow_html=True,
+        )
+        if not typology_detail_df.empty:
+            st.download_button(
+                label="Download Village Typology Details (CSV)",
+                data=csv_bytes(typology_detail_df.drop(columns=["_order"], errors="ignore")),
+                file_name="tipologi_prioritas_desa.csv",
+                mime="text/csv",
+                width="stretch",
+                key="download_journal_village_typology",
+            )
         deprivation_cols = st.columns(2)
         deprivation_cols[0].plotly_chart(
             build_journal_deprivation_scatter_figure(village_df),
@@ -4791,6 +6237,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                     "Village Digital Inclusion Index",
                     "Village Digital Deprivation Score",
                     "Within-Village Gini",
+                    "Digital Deprivation and Within-Village Inequality Score",
                 ),
             ),
             width="stretch",
@@ -4814,6 +6261,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                         "Village Digital Inclusion Index",
                         "Village Digital Deprivation Score",
                         "Within-Village Gini",
+                        "Digital Deprivation and Within-Village Inequality Score",
                     ),
                 ),
                 width="stretch",
@@ -4822,8 +6270,10 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
 
 
 def build_dimension_determinant_figure(determinant_df: pd.DataFrame) -> go.Figure:
+    display_df = determinant_df.copy()
+    display_df["Dimensi"] = display_df["Dimensi"].map(lambda value: translate_display_text(value, "Dimensi"))
     return build_ranked_red_bar_figure(
-        determinant_df,
+        display_df,
         value_column="R2 IID Desa",
         label_column="Dimensi",
         title="Dimension-Level Determination of the Village Digital Inclusion Index",
@@ -4929,7 +6379,7 @@ def render_advanced_analysis_tab(tables: dict[str, pd.DataFrame]) -> None:
 
     st.markdown("<span class='pill-note'>Advanced Analysis</span>", unsafe_allow_html=True)
     st.markdown(
-        "<div class='section-note'>This section treats the village digital inclusion index as the primary outcome. The `ikd_desa` field is interpreted as the digital deprivation score, defined as the complement of `1 - iid_desa`; therefore, higher inclusion corresponds to lower digital deprivation.</div>",
+        "<div class='section-note'>This section treats the village digital inclusion index as the primary outcome. The `ikd_desa` field is interpreted as the digital deprivation score, defined as `1 - iid_desa`; therefore, higher inclusion corresponds to lower digital deprivation.</div>",
         unsafe_allow_html=True,
     )
     st.caption(
