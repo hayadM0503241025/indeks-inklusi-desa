@@ -156,23 +156,21 @@ GINI_INTERPRETATION_RULE_TEXT = (
     "33,3% desa dengan Gini terendah dikategorikan Rendah, 33,3% berikutnya Sedang, "
     "dan 33,3% dengan Gini tertinggi dikategorikan Tinggi; tidak memakai ambang absolut"
 )
+
 IKD_INTERPRETATION_RULE_TEXT = (
-    "klasifikasi relatif berbasis tertil atas sebaran IKD-Desa (deprivasi digital = 1 - IID-Desa) "
-    "antar desa dalam sampel; 33,3% desa dengan deprivasi terendah dikategorikan Rendah, "
-    "33,3% berikutnya Sedang, dan 33,3% dengan deprivasi tertinggi dikategorikan Tinggi; "
-    "tidak memakai ambang absolut"
+    "klasifikasi relatif berbasis tertil atas sebaran IKD-Desa dalam sampel; "
+    "33,3% desa dengan IKD terendah dikategorikan Rendah, 33,3% berikutnya Sedang, "
+    "dan 33,3% dengan IKD tertinggi dikategorikan Tinggi; tidak memakai ambang absolut"
 )
 DDS_RULE_TEXT = (
-    "skor gabungan deprivasi digital dan ketimpangan internal desa dengan bobot setara: "
-    "DDS = ((1 - IID-Desa) + Gini IID-RT) / 2; nilai lebih tinggi menandakan deprivasi dan "
-    "ketimpangan internal yang lebih besar"
+    "((1 - iid_desa) + gini_iid_rumah_tangga) / 2; pembagi 2 digunakan karena dua komponen "
+    "digabungkan dengan bobot sama, yaitu 50% rendahnya inklusi digital dan 50% ketimpangan digital internal desa"
 )
 DDS_INTERPRETATION_RULE_TEXT = (
     "klasifikasi relatif berbasis tertil atas sebaran DDS antar desa dalam sampel; "
     "33,3% desa dengan DDS terendah dikategorikan Rendah, 33,3% berikutnya Sedang, "
     "dan 33,3% dengan DDS tertinggi dikategorikan Tinggi; tidak memakai ambang absolut"
 )
-
 EXCEL_FLOAT_FORMAT = "0.######"
 EXCEL_PERCENT_FORMAT = "0.######%"
 
@@ -633,6 +631,40 @@ def classify_iid_rt(value: object) -> object:
     return "sangat tinggi"
 
 
+
+def classify_iid_desa_absolute(value: object) -> object:
+    if pd.isna(value):
+        return pd.NA
+    score = float(value)
+    if score >= 0.80:
+        return "Sangat Tinggi"
+    if score >= 0.70:
+        return "Tinggi"
+    if score >= 0.60:
+        return "Sedang"
+    return "Rendah"
+
+
+def compute_digital_deprivation_within_inequality_score(desa_summary: pd.DataFrame) -> pd.Series:
+    if desa_summary.empty:
+        return pd.Series(dtype=float)
+
+    if "ikd_desa" in desa_summary.columns:
+        deprivation_component = pd.to_numeric(desa_summary["ikd_desa"], errors="coerce")
+    elif "iid_desa" in desa_summary.columns:
+        deprivation_component = 1 - pd.to_numeric(desa_summary["iid_desa"], errors="coerce")
+    else:
+        deprivation_component = pd.Series(np.nan, index=desa_summary.index, dtype=float)
+
+    if "gini_iid_rumah_tangga" in desa_summary.columns:
+        inequality_component = pd.to_numeric(desa_summary["gini_iid_rumah_tangga"], errors="coerce")
+    else:
+        inequality_component = pd.Series(np.nan, index=desa_summary.index, dtype=float)
+
+    return ((deprivation_component.clip(lower=0, upper=1) + inequality_component.clip(lower=0, upper=1)) / 2).clip(
+        lower=0,
+        upper=1,
+    )
 def format_gini_range_value(value: object, digits: int = 5) -> str:
     if pd.isna(value):
         return ""
@@ -706,20 +738,15 @@ def apply_relative_gini_classification(
     return enriched_df, pd.DataFrame(category_rows, columns=output_columns)
 
 
-def _apply_relative_tertile_classification(
+
+def _apply_relative_value_classification(
     desa_summary: pd.DataFrame,
     value_column: str,
-    interpretation_column: str,
+    category_column: str,
     range_column: str,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Generic relative (tertile-based) classification shared by IKD and DDS.
-
-    Mirrors :func:`apply_relative_gini_classification` but works on an arbitrary
-    numeric column so that IKD-Desa and DDS get the same Rendah/Sedang/Tinggi
-    tertile treatment as the within-village Gini.
-    """
     output_columns = [
-        interpretation_column,
+        category_column,
         range_column,
         "jumlah_desa",
         "persentase_desa",
@@ -730,13 +757,13 @@ def _apply_relative_tertile_classification(
     if desa_summary.empty or value_column not in desa_summary.columns:
         empty_summary = pd.DataFrame(columns=output_columns)
         enriched_df = desa_summary.copy()
-        if interpretation_column not in enriched_df.columns:
-            enriched_df[interpretation_column] = pd.NA
+        if category_column not in enriched_df.columns:
+            enriched_df[category_column] = pd.NA
         return enriched_df, empty_summary
 
     enriched_df = desa_summary.copy()
     enriched_df[value_column] = pd.to_numeric(enriched_df[value_column], errors="coerce")
-    enriched_df[interpretation_column] = pd.Series(pd.NA, index=enriched_df.index, dtype="object")
+    enriched_df[category_column] = pd.Series(pd.NA, index=enriched_df.index, dtype="object")
 
     valid_mask = enriched_df[value_column].notna()
     valid_count = int(valid_mask.sum())
@@ -745,13 +772,12 @@ def _apply_relative_tertile_classification(
         labels = GINI_CATEGORY_ORDER[:tertile_count]
         ranked_values = enriched_df.loc[valid_mask, value_column].rank(method="first")
         category_values = pd.qcut(ranked_values, q=tertile_count, labels=labels)
-        enriched_df.loc[valid_mask, interpretation_column] = category_values.astype("string").tolist()
+        enriched_df.loc[valid_mask, category_column] = category_values.astype("string").tolist()
 
-    total_desa = int(valid_count)
     category_rows: list[dict[str, object]] = []
     for label in GINI_CATEGORY_ORDER:
         category_values = enriched_df.loc[
-            enriched_df[interpretation_column].astype("string").eq(label),
+            enriched_df[category_column].astype("string").eq(label),
             value_column,
         ].dropna()
         jumlah_desa = int(category_values.shape[0])
@@ -759,21 +785,21 @@ def _apply_relative_tertile_classification(
         batas_atas = float(category_values.max()) if not category_values.empty else np.nan
 
         if category_values.empty:
-            rentang = pd.NA
+            range_value = pd.NA
         elif label == GINI_CATEGORY_ORDER[0]:
-            rentang = f"<= {format_gini_range_value(batas_atas)}"
+            range_value = f"<= {format_gini_range_value(batas_atas)}"
         elif label == GINI_CATEGORY_ORDER[-1]:
-            rentang = f">= {format_gini_range_value(batas_bawah)}"
+            range_value = f">= {format_gini_range_value(batas_bawah)}"
         else:
-            rentang = f"{format_gini_range_value(batas_bawah)} - {format_gini_range_value(batas_atas)}"
+            range_value = f"{format_gini_range_value(batas_bawah)} - {format_gini_range_value(batas_atas)}"
 
         category_rows.append(
             {
-                interpretation_column: label,
-                range_column: rentang,
+                category_column: label,
+                range_column: range_value,
                 "jumlah_desa": jumlah_desa,
-                "persentase_desa": (jumlah_desa / total_desa) if total_desa > 0 else 0.0,
-                "total_desa": total_desa,
+                "persentase_desa": (jumlah_desa / valid_count) if valid_count > 0 else 0.0,
+                "total_desa": valid_count,
                 "batas_bawah": batas_bawah,
                 "batas_atas": batas_atas,
             }
@@ -785,64 +811,23 @@ def _apply_relative_tertile_classification(
 def apply_relative_ikd_classification(
     desa_summary: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Relative tertile classification of village digital deprivation (IKD-Desa)."""
-    return _apply_relative_tertile_classification(
+    return _apply_relative_value_classification(
         desa_summary,
         value_column="ikd_desa",
-        interpretation_column="interpretasi_ikd_desa",
+        category_column="interpretasi_ikd_desa",
         range_column="rentang_ikd_desa",
     )
-
-
-def compute_digital_deprivation_within_inequality_score(
-    desa_summary: pd.DataFrame,
-) -> pd.Series:
-    """DDS = ((1 - IID-Desa) + Gini IID-RT) / 2 (equal weights)."""
-    if desa_summary.empty:
-        return pd.Series(dtype=float)
-    if "ikd_desa" in desa_summary.columns:
-        deprivation = pd.to_numeric(desa_summary["ikd_desa"], errors="coerce")
-    elif "iid_desa" in desa_summary.columns:
-        deprivation = 1 - pd.to_numeric(desa_summary["iid_desa"], errors="coerce")
-    else:
-        return pd.Series(np.nan, index=desa_summary.index)
-    if "gini_iid_rumah_tangga" in desa_summary.columns:
-        inequality = pd.to_numeric(desa_summary["gini_iid_rumah_tangga"], errors="coerce")
-    else:
-        inequality = pd.Series(np.nan, index=desa_summary.index)
-    return (deprivation + inequality) / 2
 
 
 def apply_relative_dds_classification(
     desa_summary: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Relative tertile classification of the DDS priority score."""
-    return _apply_relative_tertile_classification(
+    return _apply_relative_value_classification(
         desa_summary,
         value_column="dds_desa",
-        interpretation_column="interpretasi_dds_desa",
+        category_column="interpretasi_dds_desa",
         range_column="rentang_dds_desa",
     )
-
-
-def classify_iid_desa_absolute(value: object) -> object:
-    """Absolute (fixed-threshold) inclusion class for the village index.
-
-    Thresholds mirror the household fixed-threshold groups used elsewhere in the
-    dashboard: <0.60 Rendah, [0.60,0.70) Sedang, [0.70,0.80) Tinggi, >=0.80 Sangat Tinggi.
-    """
-    if pd.isna(value):
-        return pd.NA
-    score = float(value)
-    if score >= 0.80:
-        return "Sangat Tinggi"
-    if score >= 0.70:
-        return "Tinggi"
-    if score >= 0.60:
-        return "Sedang"
-    return "Rendah"
-
-
 def interpret_gini_value(value: object, gini_distribution_df: pd.DataFrame) -> object:
     if pd.isna(value) or gini_distribution_df.empty:
         return pd.NA
