@@ -6341,8 +6341,43 @@ def build_supplementary_external_scatter_figure(
     return apply_publication_figure_style(figure)
 
 
+def repair_supplementary_household_indicators(
+    household_df: pd.DataFrame, tables: dict[str, pd.DataFrame]
+) -> pd.DataFrame:
+    """Attach the correct per-household indicator values for the supplementary tables.
+
+    ``data_keluarga`` is stored at the person level and some indicators (notably the
+    school-participation ratio, ``indikator_F``) are recorded only on the rows of the
+    members they describe -- e.g. household members aged 7-25. ``get_household_rows``
+    keeps the first row per family, which is usually the (adult) household head, so
+    those indicators appear missing even when the household has a valid value on
+    another row. Indicator values are constant within a family, so here we take the
+    single non-missing value per ``family_id`` and overwrite the indicator columns.
+    """
+    if household_df.empty or "family_id" not in household_df.columns:
+        return household_df
+    raw_household_df = tables.get("data_keluarga", pd.DataFrame())
+    if raw_household_df.empty or "family_id" not in raw_household_df.columns:
+        return household_df
+    indicator_columns = [
+        column for column in SUPPLEMENTARY_INDICATOR_LABELS if column in raw_household_df.columns
+    ]
+    if not indicator_columns:
+        return household_df
+    numeric_raw = raw_household_df[["family_id", *indicator_columns]].copy()
+    for column in indicator_columns:
+        numeric_raw[column] = pd.to_numeric(numeric_raw[column], errors="coerce")
+    # max() ignores NaN; indicator values are constant within a family, so the max
+    # recovers the household's single valid value (NaN only when no row has a value).
+    per_family = numeric_raw.groupby("family_id")[indicator_columns].max()
+    repaired = household_df.drop(columns=indicator_columns, errors="ignore").merge(
+        per_family, left_on="family_id", right_index=True, how="left"
+    )
+    return repaired
+
+
 def render_journal_supplementary_section(
-    household_df: pd.DataFrame, village_df: pd.DataFrame
+    household_df: pd.DataFrame, village_df: pd.DataFrame, tables: dict[str, pd.DataFrame]
 ) -> None:
     st.markdown("### 6. Supplementary Tables and Figures")
     st.caption(
@@ -6355,7 +6390,8 @@ def render_journal_supplementary_section(
         st.info("Supplementary analyses require both the household and village index tables.")
         return
 
-    signature = _supplementary_signature(household_df, village_df)
+    household_df = repair_supplementary_household_indicators(household_df, tables)
+    signature = _supplementary_signature(household_df, village_df) + "|indicator-repair-v2"
     with st.spinner("Computing supplementary robustness tables and figures..."):
         bundle = compute_supplementary_bundle(signature, household_df, village_df)
 
@@ -6513,9 +6549,11 @@ def render_journal_supplementary_section(
             st.info("Indicator columns are unavailable for the missing-data summary.")
         else:
             st.caption(
-                f"Missingness per indicator across {format_journal_number(bundle.get('s6_total_households', 0), 0)} "
-                "households. Structurally undefined indicators (for example the school-participation ratio "
-                "for households without school-age members) surface here as high missing shares."
+                f"Coverage per indicator across {format_journal_number(bundle.get('s6_total_households', 0), 0)} "
+                "households, using the value recorded for each household (not just its first person-row). "
+                "A high share here reflects a structurally not-applicable indicator rather than poor data "
+                "quality: the school-participation ratio is undefined for households with no members aged "
+                "7-25, so those households (about a third) show no value. No indicator values were imputed."
             )
             st.dataframe(
                 format_journal_dataframe(
@@ -7107,7 +7145,7 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                 hide_index=True,
             )
 
-    render_journal_supplementary_section(household_df, village_df)
+    render_journal_supplementary_section(household_df, village_df, tables)
 
 
 def build_dimension_determinant_figure(determinant_df: pd.DataFrame) -> go.Figure:
