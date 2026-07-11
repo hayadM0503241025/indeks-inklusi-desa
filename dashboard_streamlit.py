@@ -6376,6 +6376,54 @@ def repair_supplementary_household_indicators(
     return repaired
 
 
+def build_supplementary_excel_sheets(bundle: dict[str, Any]) -> dict[str, pd.DataFrame]:
+    """Collect the supplementary tables into one worksheet-per-table mapping.
+
+    Table S7 is intentionally excluded because it depends on an external
+    benchmark uploaded at runtime. Matrix-style tables are reset so their row
+    labels survive the index-less Excel export.
+    """
+    sheets: dict[str, pd.DataFrame] = {}
+
+    def _with_row_labels(frame: pd.DataFrame, label: str) -> pd.DataFrame:
+        reset = frame.reset_index()
+        return reset.rename(columns={reset.columns[0]: label})
+
+    s1_df = bundle.get("s1", pd.DataFrame())
+    if not s1_df.empty:
+        sheets["S1 Weighting Schemes"] = s1_df
+
+    pca = bundle.get("pca")
+    if pca and pca.get("loadings") is not None and not pca["loadings"].empty:
+        sheets["Fig S1 PCA Loadings"] = _with_row_labels(pca["loadings"], "Dimension")
+
+    s2_df = bundle.get("s2", pd.DataFrame())
+    if not s2_df.empty:
+        sheets["S2 Spearman Matrix"] = _with_row_labels(s2_df, "Measure")
+
+    s3_df = bundle.get("s3", pd.DataFrame())
+    if not s3_df.empty:
+        sheets["S3 Category Stability"] = s3_df
+
+    s4_df = bundle.get("s4", pd.DataFrame())
+    if not s4_df.empty:
+        sheets["S4 Quadrant Transition"] = _with_row_labels(s4_df, "Baseline quadrant")
+
+    s5_df = bundle.get("s5", pd.DataFrame())
+    if not s5_df.empty:
+        sheets["S5 Leave-One-Out"] = s5_df
+
+    s6_df = bundle.get("s6", pd.DataFrame())
+    if not s6_df.empty:
+        sheets["S6 Indicator Coverage"] = s6_df
+
+    s8_df = bundle.get("s8", pd.DataFrame())
+    if not s8_df.empty:
+        sheets["S8 Gini Reliability"] = s8_df
+
+    return sheets
+
+
 def render_journal_supplementary_section(
     household_df: pd.DataFrame, village_df: pd.DataFrame, tables: dict[str, pd.DataFrame]
 ) -> None:
@@ -6695,6 +6743,24 @@ def render_journal_supplementary_section(
                 mime="text/csv",
                 key="download_supplementary_s8",
             )
+
+    # Combined workbook: all supplementary tables, one worksheet per table (S7 excluded).
+    excel_sheets = build_supplementary_excel_sheets(bundle)
+    if excel_sheets:
+        st.markdown("#### Download all supplementary tables")
+        st.caption(
+            "One Excel workbook with a separate worksheet for each of Tables S1-S6 and S8, plus the "
+            "Figure S1 PCA loadings. Table S7 is excluded because it depends on an external benchmark "
+            "you upload."
+        )
+        st.download_button(
+            "Download All Supplementary Tables (Excel, one sheet per table)",
+            data=excel_bytes_from_sheets(excel_sheets),
+            file_name="supplementary_tables_s1_s8.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            width="stretch",
+            key="download_supplementary_all_excel",
+        )
 
 
 def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
