@@ -8,6 +8,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -283,6 +284,67 @@ JOURNAL_PROFILE_DOMAINS = {
     "Social Participation": ("dimensi_E",),
 }
 JOURNAL_VILLAGE_PAGE_SIZE = 10
+
+# --- Supplementary tables and figures (journal robustness appendix) ---
+# Dimension weights are taken directly from the production pipeline so that the
+# "baseline" scheme reproduces the published index exactly.
+SUPPLEMENTARY_DIMENSION_WEIGHTS = {
+    "dimensi_A": iid_pipeline.DIMENSION_WEIGHTS["akses_perangkat"],
+    "dimensi_B": iid_pipeline.DIMENSION_WEIGHTS["konektivitas"],
+    "dimensi_C": iid_pipeline.DIMENSION_WEIGHTS["kapasitas_manusia"],
+    "dimensi_D": iid_pipeline.DIMENSION_WEIGHTS["penggunaan_digital"],
+    "dimensi_E": iid_pipeline.DIMENSION_WEIGHTS["lingkungan_sosial"],
+}
+# Which indicator columns compose each dimension, derived from the pipeline's
+# recommended (equal within-dimension) indicator weights.
+SUPPLEMENTARY_DIMENSION_INDICATORS = {
+    iid_pipeline.DIMENSION_OUTPUT_MAP[dimension]: [
+        iid_pipeline.INDICATOR_OUTPUT_MAP[indicator]
+        for indicator in indicators
+        if indicator in iid_pipeline.INDICATOR_OUTPUT_MAP
+    ]
+    for dimension, indicators in iid_pipeline.RECOMMENDED_INDICATOR_WEIGHTS.items()
+    if dimension in iid_pipeline.DIMENSION_OUTPUT_MAP
+}
+SUPPLEMENTARY_INDICATOR_LABELS = {
+    "indikator_A": "Mobile Phone Ownership",
+    "indikator_B": "Mobile Phone Sufficiency",
+    "indikator_C": "Productive Digital Device Ownership",
+    "indikator_D": "Household Internet Access",
+    "indikator_E": "Household Head Educational Attainment",
+    "indikator_F": "School Participation Ratio",
+    "indikator_G": "Household Organization Participation (Head)",
+    "indikator_H": "Household Organization Participation (Members)",
+    "indikator_I": "Community Participation (Head)",
+    "indikator_J": "Community Participation (Members)",
+    "indikator_K": "Social Media Use",
+    "indikator_L": "Information Media Access",
+    "indikator_M": "Policy Information Participation",
+}
+SUPPLEMENTARY_BASELINE_SCHEME = "Baseline (expert weights)"
+SUPPLEMENTARY_COMPARISON_SCHEME = "Equal weights"
+SUPPLEMENTARY_WEIGHT_SCHEMES = {
+    SUPPLEMENTARY_BASELINE_SCHEME: dict(SUPPLEMENTARY_DIMENSION_WEIGHTS),
+    SUPPLEMENTARY_COMPARISON_SCHEME: {column: 0.20 for column in SUPPLEMENTARY_DIMENSION_WEIGHTS},
+    "Access-oriented": {
+        "dimensi_A": 0.30,
+        "dimensi_B": 0.30,
+        "dimensi_C": 0.15,
+        "dimensi_D": 0.15,
+        "dimensi_E": 0.10,
+    },
+    "Capacity & use-oriented": {
+        "dimensi_A": 0.15,
+        "dimensi_B": 0.15,
+        "dimensi_C": 0.275,
+        "dimensi_D": 0.275,
+        "dimensi_E": 0.10,
+    },
+}
+SUPPLEMENTARY_PCA_SCHEME = "PCA-derived"
+SUPPLEMENTARY_BOOTSTRAP_SAMPLES = 500
+SUPPLEMENTARY_BOOTSTRAP_SEED = 20240711
+SUPPLEMENTARY_RELIABILITY_MIN_N = 30
 
 ANALYSIS_METRIC_LABELS = {
     "R2 IID Desa": "R-squared for Village Digital Inclusion Index",
@@ -5820,6 +5882,783 @@ def render_desa_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) ->
     st.dataframe(prepare_display_dataframe(desa_df.head(100)), width="stretch", hide_index=True)
 
 
+# ---------------------------------------------------------------------------
+# Section 6 helpers: supplementary tables and figures (robustness appendix)
+# ---------------------------------------------------------------------------
+SUPPLEMENTARY_INDICATOR_TO_DIMENSION = {
+    indicator: dimension
+    for dimension, indicators in SUPPLEMENTARY_DIMENSION_INDICATORS.items()
+    for indicator in indicators
+}
+SUPPLEMENTARY_GROUP_ORDER = {
+    category: order for order, category in enumerate(VISIBLE_CATEGORY_ORDER)
+}
+
+
+def _supplementary_signature(household_df: pd.DataFrame, village_df: pd.DataFrame) -> str:
+    parts = [str(len(household_df)), str(len(village_df))]
+    if "iid_rumah_tangga" in household_df.columns:
+        parts.append(f"{pd.to_numeric(household_df['iid_rumah_tangga'], errors='coerce').sum():.5f}")
+    if "iid_desa" in village_df.columns:
+        parts.append(f"{pd.to_numeric(village_df['iid_desa'], errors='coerce').sum():.5f}")
+    return "|".join(parts)
+
+
+def _supplementary_spearman(left: Any, right: Any) -> float:
+    paired = pd.DataFrame(
+        {
+            "left": pd.to_numeric(pd.Series(left).reset_index(drop=True), errors="coerce"),
+            "right": pd.to_numeric(pd.Series(right).reset_index(drop=True), errors="coerce"),
+        }
+    ).dropna()
+    if len(paired) < 3:
+        return float("nan")
+    return float(paired["left"].rank().corr(paired["right"].rank()))
+
+
+def _supplementary_reconstruct_dimension_scores(
+    household_df: pd.DataFrame, drop_indicator: str | None = None
+) -> pd.DataFrame:
+    reconstructed = pd.DataFrame(index=household_df.index)
+    for dimension, indicators in SUPPLEMENTARY_DIMENSION_INDICATORS.items():
+        usable = [
+            indicator
+            for indicator in indicators
+            if indicator != drop_indicator and indicator in household_df.columns
+        ]
+        if not usable:
+            reconstructed[dimension] = np.nan
+        else:
+            reconstructed[dimension] = (
+                household_df[usable].apply(pd.to_numeric, errors="coerce").mean(axis=1)
+            )
+    return reconstructed
+
+
+def _supplementary_bootstrap_gini_ci(
+    values: np.ndarray, samples: int, seed: int
+) -> tuple[float, float]:
+    finite = np.asarray(values, dtype=float)
+    finite = finite[np.isfinite(finite)]
+    n = finite.size
+    if n < 2:
+        return (float("nan"), float("nan"))
+    rng = np.random.default_rng(seed)
+    draws = np.sort(finite[rng.integers(0, n, size=(samples, n))], axis=1)
+    weights = np.arange(1, n + 1)
+    totals = draws.sum(axis=1)
+    totals = np.where(totals == 0, np.nan, totals)
+    gini_values = (2 * (draws * weights).sum(axis=1) / (n * totals)) - ((n + 1) / n)
+    gini_values = gini_values[np.isfinite(gini_values)]
+    if gini_values.size == 0:
+        return (float("nan"), float("nan"))
+    lower, upper = np.percentile(gini_values, [2.5, 97.5])
+    return (float(lower), float(upper))
+
+
+def _supplementary_pca(
+    village_df: pd.DataFrame, dimension_columns: list[str]
+) -> dict[str, Any] | None:
+    if len(dimension_columns) < 2:
+        return None
+    matrix = village_df[dimension_columns].apply(pd.to_numeric, errors="coerce").dropna()
+    if matrix.shape[0] < 3 or matrix.shape[1] < 2:
+        return None
+    std = matrix.std(ddof=0)
+    keep_columns = [column for column in matrix.columns if std.get(column, 0) > 0]
+    if len(keep_columns) < 2:
+        return None
+    standardized = (matrix[keep_columns] - matrix[keep_columns].mean()) / std[keep_columns]
+    _, singular_values, vt = np.linalg.svd(standardized.values, full_matrices=False)
+    variance_explained = (singular_values ** 2) / float(np.sum(singular_values ** 2))
+    loadings = pd.DataFrame(
+        vt.T,
+        index=[JOURNAL_DIMENSION_LABELS.get(column, column) for column in keep_columns],
+        columns=[f"PC{index + 1}" for index in range(vt.shape[0])],
+    )
+    first_component = np.abs(vt[0])
+    weight_scheme: dict[str, float] = {}
+    if first_component.sum() > 0:
+        normalized = first_component / first_component.sum()
+        weight_scheme = {
+            column: round(float(weight), 3)
+            for column, weight in zip(keep_columns, normalized)
+        }
+    return {
+        "loadings": loadings,
+        "variance_explained": variance_explained,
+        "weight_scheme": weight_scheme,
+        "columns": keep_columns,
+    }
+
+
+@st.cache_data(show_spinner=False)
+def compute_supplementary_bundle(
+    signature: str, _household_df: pd.DataFrame, _village_df: pd.DataFrame
+) -> dict[str, Any]:
+    household_df = _household_df
+    village_df = _village_df
+    bundle: dict[str, Any] = {}
+
+    dimension_columns = [
+        column for column in SUPPLEMENTARY_DIMENSION_WEIGHTS if column in household_df.columns
+    ]
+    code_to_name: dict[Any, Any] = {}
+    if {"kode_deskel", "Village"}.issubset(village_df.columns):
+        code_to_name = dict(zip(village_df["kode_deskel"], village_df["Village"]))
+    elif {"kode_deskel", "deskel"}.issubset(household_df.columns):
+        code_to_name = dict(zip(household_df["kode_deskel"], household_df["deskel"]))
+
+    # --- PCA (Figure S1) and the PCA-derived weighting scheme ---
+    pca = _supplementary_pca(village_df, [c for c in SUPPLEMENTARY_DIMENSION_WEIGHTS if c in village_df.columns])
+    bundle["pca"] = pca
+
+    schemes: dict[str, dict[str, float]] = {
+        name: {column: weight for column, weight in weights.items() if column in dimension_columns}
+        for name, weights in SUPPLEMENTARY_WEIGHT_SCHEMES.items()
+    }
+    if pca is not None and pca.get("weight_scheme"):
+        schemes[SUPPLEMENTARY_PCA_SCHEME] = {
+            column: weight
+            for column, weight in pca["weight_scheme"].items()
+            if column in dimension_columns
+        }
+
+    scheme_village: dict[str, pd.DataFrame] = {}
+    if dimension_columns and "kode_deskel" in household_df.columns:
+        base_household = household_df[["kode_deskel", *dimension_columns]].copy()
+        for column in dimension_columns:
+            base_household[column] = pd.to_numeric(base_household[column], errors="coerce")
+        for name, weights in schemes.items():
+            if not weights:
+                continue
+            index_series = iid_pipeline.compute_weighted_dimension(base_household, weights)
+            summary = (
+                base_household.assign(_index=index_series)
+                .groupby("kode_deskel")["_index"]
+                .agg(
+                    [
+                        ("mean_index", "mean"),
+                        ("gini", lambda series: iid_pipeline.gini_coefficient(series.dropna())),
+                        ("households", "size"),
+                    ]
+                )
+            )
+            scheme_village[name] = summary
+    bundle["scheme_village"] = scheme_village
+
+    baseline_village = scheme_village.get(SUPPLEMENTARY_BASELINE_SCHEME)
+
+    # --- Table S1: alternative weighting schemes and dimension weights ---
+    s1_rows: list[dict[str, Any]] = []
+    for name, weights in schemes.items():
+        summary = scheme_village.get(name)
+        row: dict[str, Any] = {"Weighting scheme": name}
+        for column in SUPPLEMENTARY_DIMENSION_WEIGHTS:
+            row[JOURNAL_DIMENSION_LABELS.get(column, column)] = weights.get(column, np.nan)
+        if summary is not None and not summary.empty:
+            row["Mean village index"] = float(summary["mean_index"].mean())
+            row["Rank corr. vs baseline"] = (
+                1.0
+                if name == SUPPLEMENTARY_BASELINE_SCHEME
+                else _supplementary_spearman(summary["mean_index"], baseline_village["mean_index"])
+                if baseline_village is not None
+                else np.nan
+            )
+        s1_rows.append(row)
+    bundle["s1"] = pd.DataFrame(s1_rows)
+
+    # --- Table S2: Spearman correlation matrix (village dimensions + index + Gini) ---
+    corr_columns: dict[str, pd.Series] = {}
+    for column in SUPPLEMENTARY_DIMENSION_WEIGHTS:
+        if column in village_df.columns:
+            corr_columns[JOURNAL_DIMENSION_LABELS.get(column, column)] = pd.to_numeric(
+                village_df[column], errors="coerce"
+            )
+    if "iid_desa" in village_df.columns:
+        corr_columns["Village Digital Inclusion Index"] = pd.to_numeric(
+            village_df["iid_desa"], errors="coerce"
+        )
+    if "gini_iid_rumah_tangga" in village_df.columns:
+        corr_columns["Within-Village Gini"] = pd.to_numeric(
+            village_df["gini_iid_rumah_tangga"], errors="coerce"
+        )
+    if len(corr_columns) >= 2:
+        corr_frame = pd.DataFrame(corr_columns)
+        bundle["s2"] = corr_frame.rank().corr().round(3)
+    else:
+        bundle["s2"] = pd.DataFrame()
+
+    # --- Table S3: village-category stability under alternative schemes ---
+    s3_rows: list[dict[str, Any]] = []
+    if baseline_village is not None and not baseline_village.empty:
+        baseline_category = baseline_village["mean_index"].apply(classify_iid_fixed_threshold)
+        baseline_rank = baseline_category.map(SUPPLEMENTARY_GROUP_ORDER)
+        for name, summary in scheme_village.items():
+            if name == SUPPLEMENTARY_BASELINE_SCHEME or summary is None or summary.empty:
+                continue
+            category = summary["mean_index"].apply(classify_iid_fixed_threshold)
+            aligned = pd.DataFrame({"base": baseline_rank, "alt": category.map(SUPPLEMENTARY_GROUP_ORDER)}).dropna()
+            if aligned.empty:
+                continue
+            unchanged = (aligned["base"] == aligned["alt"]).mean()
+            moved_up = (aligned["alt"] > aligned["base"]).mean()
+            moved_down = (aligned["alt"] < aligned["base"]).mean()
+            s3_rows.append(
+                {
+                    "Weighting scheme": name,
+                    "Villages": int(len(aligned)),
+                    "Unchanged category": float(unchanged),
+                    "Moved up": float(moved_up),
+                    "Moved down": float(moved_down),
+                }
+            )
+    bundle["s3"] = pd.DataFrame(s3_rows)
+
+    # --- Table S4: quadrant transition matrix (baseline vs comparison scheme) ---
+    comparison_village = scheme_village.get(SUPPLEMENTARY_COMPARISON_SCHEME)
+    bundle["s4_comparison_scheme"] = SUPPLEMENTARY_COMPARISON_SCHEME
+    if baseline_village is not None and comparison_village is not None:
+        def _quadrant(summary: pd.DataFrame) -> pd.Series:
+            median_index = summary["mean_index"].median()
+            median_gini = summary["gini"].median()
+            inclusion = np.where(summary["mean_index"] >= median_index, "High inclusion", "Low inclusion")
+            inequality = np.where(summary["gini"] >= median_gini, "High inequality", "Low inequality")
+            return pd.Series(
+                [f"{a} / {b}" for a, b in zip(inclusion, inequality)], index=summary.index
+            )
+
+        quadrant_order = [
+            "High inclusion / Low inequality",
+            "High inclusion / High inequality",
+            "Low inclusion / Low inequality",
+            "Low inclusion / High inequality",
+        ]
+        baseline_quadrant = _quadrant(baseline_village)
+        comparison_quadrant = _quadrant(comparison_village.reindex(baseline_village.index))
+        transition = pd.crosstab(baseline_quadrant, comparison_quadrant)
+        transition = transition.reindex(index=quadrant_order, columns=quadrant_order, fill_value=0)
+        bundle["s4"] = transition
+        bundle["s4_stability"] = float((baseline_quadrant == comparison_quadrant).mean())
+    else:
+        bundle["s4"] = pd.DataFrame()
+        bundle["s4_stability"] = float("nan")
+
+    # --- Table S5 / Figure S2: indicator-level leave-one-out ---
+    s5_rows: list[dict[str, Any]] = []
+    if dimension_columns and "kode_deskel" in household_df.columns:
+        codes = household_df["kode_deskel"]
+        full_scores = _supplementary_reconstruct_dimension_scores(household_df)
+        full_index = iid_pipeline.compute_weighted_dimension(full_scores, SUPPLEMENTARY_DIMENSION_WEIGHTS)
+        full_village = full_index.groupby(codes).mean()
+        for indicator, label in SUPPLEMENTARY_INDICATOR_LABELS.items():
+            if indicator not in household_df.columns:
+                continue
+            loo_scores = _supplementary_reconstruct_dimension_scores(household_df, drop_indicator=indicator)
+            loo_index = iid_pipeline.compute_weighted_dimension(loo_scores, SUPPLEMENTARY_DIMENSION_WEIGHTS)
+            loo_village = loo_index.groupby(codes).mean()
+            dimension_column = SUPPLEMENTARY_INDICATOR_TO_DIMENSION.get(indicator)
+            s5_rows.append(
+                {
+                    "Indicator": label,
+                    "Dimension": JOURNAL_DIMENSION_LABELS.get(dimension_column, dimension_column),
+                    "Rank corr. (leave-one-out vs full)": _supplementary_spearman(loo_village, full_village),
+                    "Mean absolute index change": float((loo_village - full_village).abs().mean()),
+                }
+            )
+    bundle["s5"] = (
+        pd.DataFrame(s5_rows).sort_values("Rank corr. (leave-one-out vs full)").reset_index(drop=True)
+        if s5_rows
+        else pd.DataFrame()
+    )
+
+    # --- Table S6: missing-data sensitivity ---
+    s6_rows: list[dict[str, Any]] = []
+    total_households = int(len(household_df))
+    for indicator, label in SUPPLEMENTARY_INDICATOR_LABELS.items():
+        if indicator not in household_df.columns:
+            continue
+        series = pd.to_numeric(household_df[indicator], errors="coerce")
+        missing = int(series.isna().sum())
+        dimension_column = SUPPLEMENTARY_INDICATOR_TO_DIMENSION.get(indicator)
+        s6_rows.append(
+            {
+                "Indicator": label,
+                "Dimension": JOURNAL_DIMENSION_LABELS.get(dimension_column, dimension_column),
+                "Valid households": total_households - missing,
+                "Missing households": missing,
+                "Missing share": (missing / total_households) if total_households else np.nan,
+            }
+        )
+    bundle["s6"] = (
+        pd.DataFrame(s6_rows).sort_values("Missing share", ascending=False).reset_index(drop=True)
+        if s6_rows
+        else pd.DataFrame()
+    )
+    bundle["s6_total_households"] = total_households
+
+    # --- Table S8 / Figure S4: household counts and Gini reliability (bootstrap) ---
+    s8_rows: list[dict[str, Any]] = []
+    if dimension_columns and "kode_deskel" in household_df.columns:
+        base_household = household_df[["kode_deskel", *dimension_columns]].copy()
+        for column in dimension_columns:
+            base_household[column] = pd.to_numeric(base_household[column], errors="coerce")
+        baseline_index = iid_pipeline.compute_weighted_dimension(
+            base_household, {c: SUPPLEMENTARY_DIMENSION_WEIGHTS[c] for c in dimension_columns}
+        )
+        baseline_index_by_village = base_household.assign(_index=baseline_index).groupby("kode_deskel")["_index"]
+        for offset, (code, series) in enumerate(baseline_index_by_village):
+            values = series.dropna().to_numpy(dtype=float)
+            n = int(values.size)
+            point_gini = iid_pipeline.gini_coefficient(values)
+            lower, upper = _supplementary_bootstrap_gini_ci(
+                values, SUPPLEMENTARY_BOOTSTRAP_SAMPLES, SUPPLEMENTARY_BOOTSTRAP_SEED + offset
+            )
+            s8_rows.append(
+                {
+                    "kode_deskel": code,
+                    "Village": code_to_name.get(code, code),
+                    "Households": n,
+                    "Within-Village Gini": float(point_gini),
+                    "Gini CI lower": lower,
+                    "Gini CI upper": upper,
+                    "CI width": (upper - lower) if np.isfinite(upper) and np.isfinite(lower) else np.nan,
+                    "Reliable (n>=%d)" % SUPPLEMENTARY_RELIABILITY_MIN_N: n >= SUPPLEMENTARY_RELIABILITY_MIN_N,
+                }
+            )
+    bundle["s8"] = (
+        pd.DataFrame(s8_rows).sort_values("Households").reset_index(drop=True)
+        if s8_rows
+        else pd.DataFrame()
+    )
+
+    return bundle
+
+
+def build_supplementary_pca_figure(pca: dict[str, Any]) -> go.Figure | None:
+    loadings = pca.get("loadings") if pca else None
+    if loadings is None or loadings.empty:
+        return None
+    component_count = min(3, loadings.shape[1])
+    display = loadings.iloc[:, :component_count]
+    figure = px.imshow(
+        display,
+        text_auto=".2f",
+        color_continuous_scale="RdBu",
+        zmin=-1,
+        zmax=1,
+        aspect="auto",
+        labels={"x": "Principal component", "y": "Dimension", "color": "Loading"},
+    )
+    figure.update_layout(
+        title="Figure S1. Principal component loadings of the five index dimensions",
+        margin=dict(l=10, r=10, t=70, b=10),
+        coloraxis_colorbar=dict(title="Loading"),
+    )
+    return apply_publication_figure_style(figure)
+
+
+def build_supplementary_leave_one_out_figure(s5_df: pd.DataFrame) -> go.Figure | None:
+    if s5_df.empty:
+        return None
+    plot_df = s5_df.sort_values("Rank corr. (leave-one-out vs full)").copy()
+    figure = px.bar(
+        plot_df,
+        x="Rank corr. (leave-one-out vs full)",
+        y="Indicator",
+        orientation="h",
+        color="Dimension",
+        color_discrete_sequence=px.colors.qualitative.Safe,
+        text=plot_df["Rank corr. (leave-one-out vs full)"].map(lambda value: f"{value:.3f}"),
+    )
+    lower_bound = float(min(0.8, plot_df["Rank corr. (leave-one-out vs full)"].min() - 0.02))
+    figure.update_layout(
+        title="Figure S2. Village rank stability when each indicator is removed",
+        xaxis_title="Spearman rank correlation with the full index",
+        yaxis_title="Removed indicator",
+        margin=dict(l=10, r=10, t=70, b=10),
+        legend_title_text="Dimension",
+    )
+    figure.update_xaxes(range=[lower_bound, 1.0])
+    figure.update_traces(textposition="outside", cliponaxis=False)
+    return apply_publication_figure_style(figure)
+
+
+def build_supplementary_gini_ci_figure(subset_df: pd.DataFrame) -> go.Figure | None:
+    if subset_df.empty:
+        return None
+    plot_df = subset_df.sort_values("Within-Village Gini").copy()
+    labels = plot_df["Village"].astype(str)
+    point = pd.to_numeric(plot_df["Within-Village Gini"], errors="coerce")
+    lower = pd.to_numeric(plot_df["Gini CI lower"], errors="coerce")
+    upper = pd.to_numeric(plot_df["Gini CI upper"], errors="coerce")
+    figure = go.Figure()
+    figure.add_trace(
+        go.Scatter(
+            x=point,
+            y=labels,
+            mode="markers",
+            marker=dict(size=9, color="#b91c1c"),
+            error_x=dict(
+                type="data",
+                symmetric=False,
+                array=(upper - point).clip(lower=0),
+                arrayminus=(point - lower).clip(lower=0),
+                color="#7f1d1d",
+                thickness=1.4,
+                width=6,
+            ),
+            hovertemplate="%{y}<br>Gini %{x:.3f}<extra></extra>",
+        )
+    )
+    figure.update_layout(
+        title="Figure S4. Bootstrap 95% intervals for selected village Gini estimates",
+        xaxis_title="Within-village Gini (95% bootstrap interval)",
+        yaxis_title="Village",
+        margin=dict(l=10, r=10, t=70, b=10),
+    )
+    return apply_publication_figure_style(figure)
+
+
+def build_supplementary_external_scatter_figure(
+    merged_df: pd.DataFrame, benchmark_label: str
+) -> go.Figure | None:
+    if merged_df.empty:
+        return None
+    figure = px.scatter(
+        merged_df,
+        x="Village Digital Inclusion Index",
+        y="benchmark",
+        hover_name="Village" if "Village" in merged_df.columns else None,
+    )
+    figure.update_traces(marker=dict(size=9, color="#2563eb", opacity=0.8))
+    figure.update_layout(
+        title="Figure S3. Village index versus external benchmark",
+        xaxis_title="Village Digital Inclusion Index",
+        yaxis_title=benchmark_label,
+        margin=dict(l=10, r=10, t=70, b=10),
+    )
+    return apply_publication_figure_style(figure)
+
+
+def render_journal_supplementary_section(
+    household_df: pd.DataFrame, village_df: pd.DataFrame
+) -> None:
+    st.markdown("### 6. Supplementary Tables and Figures")
+    st.caption(
+        "Robustness, sensitivity, and reliability appendix. Every table and figure below is "
+        "computed live from the loaded household and village index tables using the same "
+        "dimension weights as the production pipeline, so results update automatically when the "
+        "underlying data changes."
+    )
+    if household_df.empty or village_df.empty:
+        st.info("Supplementary analyses require both the household and village index tables.")
+        return
+
+    signature = _supplementary_signature(household_df, village_df)
+    with st.spinner("Computing supplementary robustness tables and figures..."):
+        bundle = compute_supplementary_bundle(signature, household_df, village_df)
+
+    # Table S1
+    with st.expander("Table S1. Alternative weighting schemes and dimension weights", expanded=True):
+        s1_df = bundle.get("s1", pd.DataFrame())
+        if s1_df.empty:
+            st.info("Dimension scores are unavailable, so weighting schemes cannot be evaluated.")
+        else:
+            st.caption(
+                "Each scheme reweights the five dimensions and the household index is recomputed and "
+                "re-aggregated to villages. The baseline reproduces the published index exactly "
+                "(rank correlation 1.000); the PCA-derived scheme uses normalised absolute loadings of "
+                "the first principal component (Figure S1)."
+            )
+            dimension_labels = [
+                JOURNAL_DIMENSION_LABELS.get(column, column) for column in SUPPLEMENTARY_DIMENSION_WEIGHTS
+            ]
+            st.dataframe(
+                format_journal_dataframe(
+                    s1_df,
+                    score_columns=(*dimension_labels, "Mean village index", "Rank corr. vs baseline"),
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            st.download_button(
+                "Download Table S1 (CSV)",
+                data=csv_bytes(s1_df),
+                file_name="table_s1_weighting_schemes.csv",
+                mime="text/csv",
+                key="download_supplementary_s1",
+            )
+
+    # Figure S1
+    with st.expander("Figure S1. PCA loadings", expanded=False):
+        pca = bundle.get("pca")
+        figure = build_supplementary_pca_figure(pca) if pca else None
+        if figure is None:
+            st.info("Principal component analysis requires at least three villages and two dimensions.")
+        else:
+            variance_explained = pca.get("variance_explained")
+            if variance_explained is not None and len(variance_explained) >= 2:
+                st.caption(
+                    "Loadings of each dimension on the first principal components of the standardised "
+                    f"village dimension scores. PC1 explains {format_journal_percent(float(variance_explained[0]))} "
+                    f"and PC2 explains {format_journal_percent(float(variance_explained[1]))} of the variance."
+                )
+            st.plotly_chart(figure, width="stretch", key="supplementary_pca_loadings")
+
+    # Table S2
+    with st.expander("Table S2. Spearman correlation matrix", expanded=False):
+        s2_df = bundle.get("s2", pd.DataFrame())
+        if s2_df.empty:
+            st.info("Not enough numeric columns are available to build a correlation matrix.")
+        else:
+            st.caption(
+                "Spearman rank correlations across the five village dimension scores, the village index, "
+                "and within-village Gini. Computed as Pearson correlations of ranks."
+            )
+            st.dataframe(s2_df, width="stretch")
+            st.download_button(
+                "Download Table S2 (CSV)",
+                data=csv_bytes(s2_df.reset_index().rename(columns={"index": "Measure"})),
+                file_name="table_s2_spearman_matrix.csv",
+                mime="text/csv",
+                key="download_supplementary_s2",
+            )
+
+    # Table S3
+    with st.expander("Table S3. Village-category stability", expanded=False):
+        s3_df = bundle.get("s3", pd.DataFrame())
+        if s3_df.empty:
+            st.info("Category stability requires at least one alternative weighting scheme.")
+        else:
+            st.caption(
+                "Share of villages that keep their inclusion category (low / moderate / high / very high, "
+                "fixed thresholds at 0.60, 0.70, 0.80) when the baseline weights are replaced by each "
+                "alternative scheme."
+            )
+            st.dataframe(
+                format_journal_dataframe(
+                    s3_df,
+                    integer_columns=("Villages",),
+                    percent_columns=("Unchanged category", "Moved up", "Moved down"),
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            st.download_button(
+                "Download Table S3 (CSV)",
+                data=csv_bytes(s3_df),
+                file_name="table_s3_category_stability.csv",
+                mime="text/csv",
+                key="download_supplementary_s3",
+            )
+
+    # Table S4
+    with st.expander("Table S4. Quadrant transition matrix", expanded=False):
+        s4_df = bundle.get("s4", pd.DataFrame())
+        if s4_df.empty:
+            st.info("The quadrant transition matrix requires the comparison weighting scheme.")
+        else:
+            stability = bundle.get("s4_stability", float("nan"))
+            comparison = bundle.get("s4_comparison_scheme", SUPPLEMENTARY_COMPARISON_SCHEME)
+            st.caption(
+                f"Villages are split at the median village index (inclusion) and median within-village "
+                f"Gini (inequality) to form four quadrants. Rows are the baseline scheme, columns are the "
+                f"{comparison.lower()} scheme. {format_journal_percent(stability)} of villages remain in the "
+                f"same quadrant."
+            )
+            st.dataframe(s4_df, width="stretch")
+            st.download_button(
+                "Download Table S4 (CSV)",
+                data=csv_bytes(s4_df.reset_index().rename(columns={"row_0": "Baseline quadrant", "index": "Baseline quadrant"})),
+                file_name="table_s4_quadrant_transition.csv",
+                mime="text/csv",
+                key="download_supplementary_s4",
+            )
+
+    # Table S5 + Figure S2
+    with st.expander("Table S5 & Figure S2. Indicator-level leave-one-out", expanded=False):
+        s5_df = bundle.get("s5", pd.DataFrame())
+        if s5_df.empty:
+            st.info("Indicator columns are unavailable for the leave-one-out analysis.")
+        else:
+            st.caption(
+                "Each indicator is removed in turn, its dimension is re-averaged from the remaining "
+                "indicators, the index is recomputed, and village rankings are compared with the full "
+                "index. A lower rank correlation means the indicator matters more for the ranking."
+            )
+            st.dataframe(
+                format_journal_dataframe(
+                    s5_df,
+                    score_columns=("Rank corr. (leave-one-out vs full)", "Mean absolute index change"),
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            figure = build_supplementary_leave_one_out_figure(s5_df)
+            if figure is not None:
+                st.plotly_chart(figure, width="stretch", key="supplementary_leave_one_out")
+            st.download_button(
+                "Download Table S5 (CSV)",
+                data=csv_bytes(s5_df),
+                file_name="table_s5_leave_one_out.csv",
+                mime="text/csv",
+                key="download_supplementary_s5",
+            )
+
+    # Table S6
+    with st.expander("Table S6. Missing-data sensitivity", expanded=False):
+        s6_df = bundle.get("s6", pd.DataFrame())
+        if s6_df.empty:
+            st.info("Indicator columns are unavailable for the missing-data summary.")
+        else:
+            st.caption(
+                f"Missingness per indicator across {format_journal_number(bundle.get('s6_total_households', 0), 0)} "
+                "households. Structurally undefined indicators (for example the school-participation ratio "
+                "for households without school-age members) surface here as high missing shares."
+            )
+            st.dataframe(
+                format_journal_dataframe(
+                    s6_df,
+                    integer_columns=("Valid households", "Missing households"),
+                    percent_columns=("Missing share",),
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            st.download_button(
+                "Download Table S6 (CSV)",
+                data=csv_bytes(s6_df),
+                file_name="table_s6_missing_data.csv",
+                mime="text/csv",
+                key="download_supplementary_s6",
+            )
+
+    # Table S7 + Figure S3 (external data required)
+    with st.expander("Table S7 & Figure S3. External convergent validation", expanded=False):
+        st.caption(
+            "Convergent validity against an external benchmark. Upload a CSV with a village-code column "
+            "(kode_deskel) and one numeric benchmark column (for example a village development index). "
+            "The village index is then correlated and plotted against your benchmark."
+        )
+        uploaded = st.file_uploader(
+            "External benchmark CSV",
+            type=["csv"],
+            key="supplementary_external_benchmark",
+        )
+        if uploaded is None:
+            st.info(
+                "No external benchmark loaded yet. This is the only supplementary item that needs a "
+                "dataset outside the index pipeline; everything else is computed from the loaded tables."
+            )
+        else:
+            try:
+                external_df = pd.read_csv(uploaded)
+            except Exception as exc:  # noqa: BLE001 - surfaced to the user
+                st.error(f"Could not read the uploaded file: {exc}")
+                external_df = pd.DataFrame()
+            code_column = next(
+                (column for column in external_df.columns if str(column).strip().lower() in {"kode_deskel", "kode desa", "village_code"}),
+                None,
+            )
+            numeric_columns = [
+                column
+                for column in external_df.columns
+                if column != code_column and pd.to_numeric(external_df[column], errors="coerce").notna().any()
+            ]
+            if code_column is None or not numeric_columns:
+                st.error("The file needs a 'kode_deskel' column and at least one numeric benchmark column.")
+            else:
+                benchmark_column = st.selectbox(
+                    "Benchmark column", options=numeric_columns, key="supplementary_benchmark_column"
+                )
+                benchmark_df = external_df[[code_column, benchmark_column]].copy()
+                benchmark_df.columns = ["kode_deskel", "benchmark"]
+                benchmark_df["benchmark"] = pd.to_numeric(benchmark_df["benchmark"], errors="coerce")
+                merged = village_df[[c for c in ("kode_deskel", "Village", "iid_desa") if c in village_df.columns]].copy()
+                merged = merged.rename(columns={"iid_desa": "Village Digital Inclusion Index"})
+                merged["kode_deskel"] = merged["kode_deskel"].astype(str)
+                benchmark_df["kode_deskel"] = benchmark_df["kode_deskel"].astype(str)
+                merged = merged.merge(benchmark_df, on="kode_deskel", how="inner").dropna(
+                    subset=["Village Digital Inclusion Index", "benchmark"]
+                )
+                if merged.empty:
+                    st.warning("No villages matched between the index table and the uploaded benchmark.")
+                else:
+                    rho = _supplementary_spearman(
+                        merged["Village Digital Inclusion Index"], merged["benchmark"]
+                    )
+                    pearson = float(
+                        merged["Village Digital Inclusion Index"].corr(merged["benchmark"])
+                    )
+                    metric_cols = st.columns(3)
+                    metric_cols[0].metric("Matched villages", format_journal_number(len(merged), 0))
+                    metric_cols[1].metric("Spearman correlation", format_journal_number(rho))
+                    metric_cols[2].metric("Pearson correlation", format_journal_number(pearson))
+                    figure = build_supplementary_external_scatter_figure(merged, str(benchmark_column))
+                    if figure is not None:
+                        st.plotly_chart(figure, width="stretch", key="supplementary_external_scatter")
+                    st.dataframe(
+                        format_journal_dataframe(
+                            merged.rename(columns={"benchmark": str(benchmark_column)}),
+                            score_columns=("Village Digital Inclusion Index", str(benchmark_column)),
+                        ),
+                        width="stretch",
+                        hide_index=True,
+                    )
+
+    # Table S8 + Figure S4
+    with st.expander("Table S8 & Figure S4. Village household counts and Gini reliability", expanded=False):
+        s8_df = bundle.get("s8", pd.DataFrame())
+        if s8_df.empty:
+            st.info("Household-level index scores are unavailable for the Gini reliability analysis.")
+        else:
+            reliable_column = "Reliable (n>=%d)" % SUPPLEMENTARY_RELIABILITY_MIN_N
+            unreliable = int((~s8_df[reliable_column]).sum())
+            st.caption(
+                f"Household counts, within-village Gini, and {SUPPLEMENTARY_BOOTSTRAP_SAMPLES}-sample "
+                f"bootstrap 95% confidence intervals per village. Villages with fewer than "
+                f"{SUPPLEMENTARY_RELIABILITY_MIN_N} households ({unreliable} here) yield the widest "
+                "intervals and least reliable Gini estimates."
+            )
+            display_df = s8_df.drop(columns=["kode_deskel"], errors="ignore")
+            st.dataframe(
+                format_journal_dataframe(
+                    display_df,
+                    integer_columns=("Households",),
+                    score_columns=(
+                        "Within-Village Gini",
+                        "Gini CI lower",
+                        "Gini CI upper",
+                        "CI width",
+                    ),
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            village_options = s8_df["Village"].astype(str).tolist()
+            default_selection = s8_df.sort_values("Households")["Village"].astype(str).head(8).tolist()
+            selected_villages = st.multiselect(
+                "Villages shown in Figure S4 (defaults to the smallest, least reliable villages)",
+                options=village_options,
+                default=default_selection,
+                key="supplementary_gini_ci_villages",
+            )
+            subset_df = s8_df[s8_df["Village"].astype(str).isin(selected_villages)]
+            figure = build_supplementary_gini_ci_figure(subset_df)
+            if figure is not None:
+                st.plotly_chart(figure, width="stretch", key="supplementary_gini_ci")
+            elif selected_villages:
+                st.info("Selected villages do not have enough households for bootstrap intervals.")
+            st.download_button(
+                "Download Table S8 (CSV)",
+                data=csv_bytes(s8_df.drop(columns=["kode_deskel"], errors="ignore")),
+                file_name="table_s8_gini_reliability.csv",
+                mime="text/csv",
+                key="download_supplementary_s8",
+            )
+
+
 def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.DataFrame) -> None:
     household_df = prepare_journal_household_df(tables)
     raw_profile_df = prepare_journal_raw_profile_df(detail_df, household_df)
@@ -6267,6 +7106,8 @@ def render_journal_analysis_tab(tables: dict[str, pd.DataFrame], detail_df: pd.D
                 width="stretch",
                 hide_index=True,
             )
+
+    render_journal_supplementary_section(household_df, village_df)
 
 
 def build_dimension_determinant_figure(determinant_df: pd.DataFrame) -> go.Figure:
