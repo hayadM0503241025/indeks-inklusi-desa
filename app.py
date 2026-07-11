@@ -1519,7 +1519,7 @@ def render_bansos_spatial_analysis_page(
                     colorbar_title="F_IKR Agregat",
                 )
             if fig_map is not None:
-                st.plotly_chart(fig_map, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+                st.plotly_chart(fig_map, width="stretch", config=PLOTLY_DRAW_CONFIG)
             else:
                 st.warning("Koordinat belum valid untuk divisualisasikan di peta.")
 
@@ -1538,7 +1538,7 @@ def render_bansos_spatial_analysis_page(
             .reset_index(name="Jumlah KK")
             .sort_values(["Jumlah KK", "Status Dimensi Pilihan"], ascending=[False, True])
         )
-        st.dataframe(df_summary, use_container_width=True)
+        st.dataframe(df_summary, width="stretch")
 
         jenis_summary = (
             df_nodes[df_nodes["Status Bansos"] == "Penerima"]
@@ -1548,7 +1548,7 @@ def render_bansos_spatial_analysis_page(
             .sort_values(["Status Dimensi Pilihan", "Jumlah KK"], ascending=[True, False])
         )
         st.markdown("#### Jenis Bansos pada Dimensi Terpilih")
-        st.dataframe(jenis_summary, use_container_width=True)
+        st.dataframe(jenis_summary, width="stretch")
 
     dim_priority_cols = [col for _, col in IKR_DIMENSION_MAP if col in df_nodes.columns]
     if dim_priority_cols:
@@ -1574,7 +1574,7 @@ def render_bansos_spatial_analysis_page(
                 title="Sebaran Skor Tiap Dimensi menurut Status Penerimaan Bansos",
             )
             fig_dim.update_layout(template="plotly_white", height=460, xaxis_title="", yaxis_title="Skor")
-            st.plotly_chart(fig_dim, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+            st.plotly_chart(fig_dim, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     bansos_dim_focus = df_nodes[["family_id", "nama", "Status Bansos", "Jenis Bansos", "kategori_ikr", "F_IKR", "Skor Dimensi Pilihan", "Status Dimensi Pilihan", "Cluster Louvain"]].copy()
     fig_focus = px.scatter(
@@ -1589,7 +1589,7 @@ def render_bansos_spatial_analysis_page(
     )
     fig_focus.add_vline(x=selected_threshold, line_dash="dash", line_color="#475569")
     fig_focus.update_layout(template="plotly_white", height=460, xaxis_title=selected_dimension_label, yaxis_title="F_IKR")
-    st.plotly_chart(fig_focus, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+    st.plotly_chart(fig_focus, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     detail_cols = [
         "family_id",
@@ -1614,7 +1614,7 @@ def render_bansos_spatial_analysis_page(
             ["Status Dimensi Pilihan", "Status Bansos", "F_IKR"],
             ascending=[True, True, True],
         ),
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -2088,8 +2088,8 @@ def render_weighting_methods_page(
             height=640,
             template="plotly_white",
         )
-        st.plotly_chart(fig_flow, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
-        st.dataframe(flow_df, use_container_width=True)
+        st.plotly_chart(fig_flow, width="stretch", config=PLOTLY_DRAW_CONFIG)
+        st.dataframe(flow_df, width="stretch")
 
     with tab_rumus:
         st.markdown("#### Cosine Similarity")
@@ -2117,12 +2117,12 @@ def render_weighting_methods_page(
 
     with tab_sim:
         st.markdown("#### Data 2 Node Terpilih")
-        st.dataframe(pseudo_two_nodes, use_container_width=True)
+        st.dataframe(pseudo_two_nodes, width="stretch")
         active_cols = onehot_two.columns[(onehot_two.sum(axis=0) > 0)].tolist()
         onehot_view = onehot_two[active_cols].copy() if active_cols else onehot_two.copy()
         onehot_view.index = pseudo_two_nodes["family_id"].astype(str).tolist()
         st.markdown("#### Hasil One-Hot (kolom aktif)")
-        st.dataframe(onehot_view, use_container_width=True)
+        st.dataframe(onehot_view, width="stretch")
 
         vec_a = onehot_two.iloc[0].to_numpy(dtype=float)
         vec_b = onehot_two.iloc[1].to_numpy(dtype=float)
@@ -2191,7 +2191,7 @@ def render_weighting_methods_page(
             title="Histogram Cosine Similarity (Data Pseudo)",
         )
         fig_hist.update_layout(xaxis_title="Cosine Similarity", yaxis_title="Frekuensi")
-        st.plotly_chart(fig_hist, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_hist, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
         edge_at_demo = int(np.sum(np.array(cos_values) >= demo_threshold))
         summary_df = pd.DataFrame(
@@ -2205,7 +2205,7 @@ def render_weighting_methods_page(
                 }
             ]
         )
-        st.dataframe(summary_df, use_container_width=True)
+        st.dataframe(summary_df, width="stretch")
         st.caption(
             f"Pada halaman metode ini, keputusan edge didemokan dengan threshold tetap {demo_threshold:.2f}."
         )
@@ -2252,8 +2252,8 @@ def render_louvain_methods_page(
             insidetextfont=dict(size=12, color="#ffffff"),
         )
         fig_louvain_flow.update_layout(height=560, template="plotly_white", xaxis_title="", yaxis_title="")
-        st.plotly_chart(fig_louvain_flow, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
-        st.dataframe(louvain_flow, use_container_width=True)
+        st.plotly_chart(fig_louvain_flow, width="stretch", config=PLOTLY_DRAW_CONFIG)
+        st.dataframe(louvain_flow, width="stretch")
 
     with tab_rumus:
         st.markdown("#### Fungsi Modularity (Q)")
@@ -2372,7 +2372,7 @@ def render_louvain_methods_page(
                 xaxis=dict(visible=False),
                 yaxis=dict(visible=False),
             )
-            st.plotly_chart(fig_graph, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+            st.plotly_chart(fig_graph, width="stretch", config=PLOTLY_DRAW_CONFIG)
         else:
             st.warning("Graf pseudo tidak memiliki edge pada konfigurasi saat ini.")
 
@@ -2404,7 +2404,7 @@ def render_louvain_methods_page(
             csum1, csum2 = st.columns(2)
             csum1.metric("Jumlah Klaster Terbentuk", f"{total_clusters}")
             csum2.metric("Total Node Terpartisi", f"{int(size_df['Jumlah Node'].sum())}")
-            st.dataframe(size_df, use_container_width=True)
+            st.dataframe(size_df, width="stretch")
 
             cluster_desc = (
                 pseudo_profile.groupby("Komunitas Louvain", as_index=False)
@@ -2436,7 +2436,7 @@ def render_louvain_methods_page(
                         "Rerata_Weighted_Degree": "{:.2f}",
                     }
                 ),
-                use_container_width=True,
+                width="stretch",
             )
 
             fig_cluster_profile = px.bar(
@@ -2452,7 +2452,7 @@ def render_louvain_methods_page(
                 barmode="group",
                 title="Profil Rerata Dimensi per Klaster Louvain",
             )
-            st.plotly_chart(fig_cluster_profile, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+            st.plotly_chart(fig_cluster_profile, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
             st.markdown("#### Narasi Otomatis Karakter Tiap Klaster")
             for _, row in cluster_desc.iterrows():
@@ -2475,7 +2475,7 @@ def render_louvain_methods_page(
                 )
 
             st.markdown("#### Sampel Hasil Partisi Node")
-            st.dataframe(out_df.head(30), use_container_width=True)
+            st.dataframe(out_df.head(30), width="stretch")
             st.caption(
                 "Logika penerapan: graf base pseudo -> optimasi modularity (Louvain) -> partisi komunitas final."
             )
@@ -2579,8 +2579,8 @@ def render_assortativity_methods_page(
             insidetextfont=dict(size=12, color="#ffffff"),
         )
         fig_flow_assort.update_layout(height=560, template="plotly_white", xaxis_title="", yaxis_title="")
-        st.plotly_chart(fig_flow_assort, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
-        st.dataframe(flow_assort, use_container_width=True)
+        st.plotly_chart(fig_flow_assort, width="stretch", config=PLOTLY_DRAW_CONFIG)
+        st.dataframe(flow_assort, width="stretch")
 
     with tab_konsep:
         k1, k2, k3 = st.columns(3)
@@ -2614,7 +2614,7 @@ def render_assortativity_methods_page(
                 {"Rentang Nilai": "r <= -0.10", "Interpretasi": "Disasortatif (lebih sering lintas kategori)"},
             ]
         )
-        st.dataframe(cara_baca_df, use_container_width=True)
+        st.dataframe(cara_baca_df, width="stretch")
         st.markdown("#### Kenapa Masuk Jenis Ini?")
         jenis_df = pd.DataFrame(
             [
@@ -2638,7 +2638,7 @@ def render_assortativity_methods_page(
                 },
             ]
         )
-        st.dataframe(jenis_df, use_container_width=True)
+        st.dataframe(jenis_df, width="stretch")
         fig_class = px.treemap(
             jenis_df,
             path=["Jenis Assortativity", "Objek/Metrik"],
@@ -2647,7 +2647,7 @@ def render_assortativity_methods_page(
             color_discrete_sequence=["#1d4ed8", "#2563eb", "#60a5fa"],
             title="Peta Klasifikasi Jenis Assortativity di Dashboard",
         )
-        st.plotly_chart(fig_class, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_class, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     df_nodes = pd.DataFrame(rows)
     edge_pairs = []
@@ -2725,8 +2725,8 @@ def render_assortativity_methods_page(
         )
         fig_num.add_vline(x=0.0, line_dash="dash", line_color="#475569")
         fig_num.update_traces(text=df_num_sorted["r"].map(lambda x: f"{x:.3f}"), textposition="outside")
-        st.plotly_chart(fig_num, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
-        st.dataframe(df_num.style.background_gradient(cmap="Blues", subset=["r"]), use_container_width=True)
+        st.plotly_chart(fig_num, width="stretch", config=PLOTLY_DRAW_CONFIG)
+        st.dataframe(df_num.style.background_gradient(cmap="Blues", subset=["r"]), width="stretch")
         top_num_local = df_num.iloc[df_num["r"].abs().idxmax()]
         st.markdown(
             f"<div class='soft-card'><b>Interpretasi Cepat Numeric:</b><br>"
@@ -2770,7 +2770,7 @@ def render_assortativity_methods_page(
                     name="Garis x=y",
                 )
             )
-            st.plotly_chart(fig_pair, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+            st.plotly_chart(fig_pair, width="stretch", config=PLOTLY_DRAW_CONFIG)
             st.caption("Semakin rapat titik di sekitar garis x=y, semakin tinggi kecenderungan asortatif untuk dimensi itu.")
 
     attr_specs = [
@@ -2835,8 +2835,8 @@ def render_assortativity_methods_page(
             hover_data=["Kolom", "Qw*", "Qb*", "Arah", "Kekuatan", "Label Steinley"],
         )
         fig_attr.add_hline(y=0.0, line_dash="dash", line_color="#475569")
-        st.plotly_chart(fig_attr, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
-        st.dataframe(df_attr.style.background_gradient(cmap="Blues", subset=["r"]), use_container_width=True)
+        st.plotly_chart(fig_attr, width="stretch", config=PLOTLY_DRAW_CONFIG)
+        st.dataframe(df_attr.style.background_gradient(cmap="Blues", subset=["r"]), width="stretch")
         melt_attr = df_attr.melt(
             id_vars=["Metrik"],
             value_vars=["r", "Qw*", "Qb*"],
@@ -2853,7 +2853,7 @@ def render_assortativity_methods_page(
             color_discrete_sequence=["#1d4ed8", "#60a5fa", "#93c5fd"],
         )
         fig_attr_comp.add_hline(y=0.0, line_dash="dash", line_color="#475569")
-        st.plotly_chart(fig_attr_comp, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_attr_comp, width="stretch", config=PLOTLY_DRAW_CONFIG)
         attr_choice = st.selectbox(
             "Detail Matriks Kategori per Edge",
             options=["Bansos", "Internet", "Ponsel", "Dusun"],
@@ -2886,7 +2886,7 @@ def render_assortativity_methods_page(
                 height=430,
                 template="plotly_white",
             )
-            st.plotly_chart(heat, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+            st.plotly_chart(heat, width="stretch", config=PLOTLY_DRAW_CONFIG)
             same_ratio = float(np.mean(df_edges[cu].astype(str).values == df_edges[cv].astype(str).values))
             pie_df = pd.DataFrame(
                 [
@@ -2903,7 +2903,7 @@ def render_assortativity_methods_page(
                 hole=0.55,
                 title=f"Komposisi Edge Sama vs Berbeda - {attr_choice}",
             )
-            st.plotly_chart(fig_pie, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+            st.plotly_chart(fig_pie, width="stretch", config=PLOTLY_DRAW_CONFIG)
             st.caption(
                 "Semakin besar porsi 'Kategori Sama', biasanya r attribute cenderung makin positif."
             )
@@ -2957,7 +2957,7 @@ def render_assortativity_methods_page(
             title="Skor Normalized Within-Between Assortativity",
         )
         fig_montes.add_hline(y=0.0, line_dash="dash", line_color="#475569")
-        st.plotly_chart(fig_montes, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_montes, width="stretch", config=PLOTLY_DRAW_CONFIG)
         wb_compare_df = pd.DataFrame(
             [
                 {"Kelompok": "Audit (Rata-rata 4 atribut)", "Komponen": "Qw*", "Nilai": audit_qw_mean},
@@ -2976,8 +2976,8 @@ def render_assortativity_methods_page(
             title="Perbandingan Within-Between: Audit vs BPS",
         )
         fig_wb_cmp.add_hline(y=0.0, line_dash="dash", line_color="#475569")
-        st.plotly_chart(fig_wb_cmp, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
-        st.dataframe(wb_compare_df, use_container_width=True)
+        st.plotly_chart(fig_wb_cmp, width="stretch", config=PLOTLY_DRAW_CONFIG)
+        st.dataframe(wb_compare_df, width="stretch")
         fig_quad = go.Figure()
         fig_quad.add_shape(type="line", x0=-1, x1=1, y0=0, y1=0, line=dict(color="#64748b", dash="dash"))
         fig_quad.add_shape(type="line", x0=0, x1=0, y0=-1, y1=1, line=dict(color="#64748b", dash="dash"))
@@ -3005,7 +3005,7 @@ def render_assortativity_methods_page(
             height=430,
             template="plotly_white",
         )
-        st.plotly_chart(fig_quad, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_quad, width="stretch", config=PLOTLY_DRAW_CONFIG)
         if q_w_star >= 0.30 and q_b_star >= 0.30:
             montes_note = "Homogenitas kuat baik intra maupun antar-klaster."
         elif q_w_star >= 0.30 and q_b_star < 0.10:
@@ -3044,8 +3044,8 @@ def render_assortativity_methods_page(
         st.markdown(
             "3. Bandingkan `Qw*` vs `Qb*`: apakah pemilahan dominan di dalam klaster atau juga lintas klaster."
         )
-        st.dataframe(df_num, use_container_width=True)
-        st.dataframe(df_attr, use_container_width=True)
+        st.dataframe(df_num, width="stretch")
+        st.dataframe(df_attr, width="stretch")
 
 
 def render_centrality_methods_page(
@@ -3089,8 +3089,8 @@ def render_centrality_methods_page(
             insidetextfont=dict(size=12, color="#ffffff"),
         )
         fig_flow.update_layout(height=620, template="plotly_white", xaxis_title="", yaxis_title="")
-        st.plotly_chart(fig_flow, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
-        st.dataframe(flow_df, use_container_width=True)
+        st.plotly_chart(fig_flow, width="stretch", config=PLOTLY_DRAW_CONFIG)
+        st.dataframe(flow_df, width="stretch")
 
     with tab_rumus:
         st.markdown("#### 1) Degree Centrality (weighted degree)")
@@ -3265,7 +3265,7 @@ def render_centrality_methods_page(
             xaxis=dict(visible=False),
             yaxis=dict(visible=False),
         )
-        st.plotly_chart(fig_graph, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_graph, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     with tab_out:
         df_cent = pd.DataFrame(
@@ -3286,14 +3286,14 @@ def render_centrality_methods_page(
         m1, m2 = st.columns(2)
         with m1:
             st.caption("Top 10 Degree")
-            st.dataframe(df_cent.sort_values("Degree", ascending=False).head(10), use_container_width=True)
+            st.dataframe(df_cent.sort_values("Degree", ascending=False).head(10), width="stretch")
             st.caption("Top 10 Betweenness")
-            st.dataframe(df_cent.sort_values("Betweenness", ascending=False).head(10), use_container_width=True)
+            st.dataframe(df_cent.sort_values("Betweenness", ascending=False).head(10), width="stretch")
         with m2:
             st.caption("Top 10 Closeness")
-            st.dataframe(df_cent.sort_values("Closeness", ascending=False).head(10), use_container_width=True)
+            st.dataframe(df_cent.sort_values("Closeness", ascending=False).head(10), width="stretch")
             st.caption("Top 10 Eigenvector")
-            st.dataframe(df_cent.sort_values("Eigenvector", ascending=False).head(10), use_container_width=True)
+            st.dataframe(df_cent.sort_values("Eigenvector", ascending=False).head(10), width="stretch")
 
         st.markdown("#### Ringkasan per Klaster")
         df_cluster = (
@@ -3308,7 +3308,7 @@ def render_centrality_methods_page(
             .sort_values("Klaster Louvain")
             .reset_index(drop=True)
         )
-        st.dataframe(df_cluster, use_container_width=True)
+        st.dataframe(df_cluster, width="stretch")
         st.caption(
             "Cara baca sederhana: Degree tinggi = pusat interaksi lokal; Betweenness tinggi = node jembatan; "
             "Closeness tinggi = cepat menjangkau node lain; Eigenvector tinggi = penting karena terhubung ke node penting."
@@ -3645,7 +3645,7 @@ def render_journal_comparison_section(result_df):
             xaxis_title="Metode",
         )
         fig_score.update_traces(textposition="outside")
-        st.plotly_chart(fig_score, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_score, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     with viz2:
         fig_radar = go.Figure()
@@ -3667,7 +3667,7 @@ def render_journal_comparison_section(result_df):
             polar=dict(radialaxis=dict(range=[0, 1], tickformat=".1f")),
             showlegend=True,
         )
-        st.plotly_chart(fig_radar, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_radar, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     modularity_table_df = build_modularity_pivot_table(result_df)
 
@@ -3701,7 +3701,7 @@ def render_journal_comparison_section(result_df):
             title="Perbandingan Indikator Inti",
         )
         fig_metric.update_layout(template="plotly_white", yaxis_title="Nilai", xaxis_title="")
-        st.plotly_chart(fig_metric, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_metric, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     with viz4:
         if not modularity_table_df.empty:
@@ -3715,7 +3715,7 @@ def render_journal_comparison_section(result_df):
                 labels=dict(x="Metode", y="Desa", color="Modularity"),
             )
             fig_heat.update_layout(template="plotly_white")
-            st.plotly_chart(fig_heat, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+            st.plotly_chart(fig_heat, width="stretch", config=PLOTLY_DRAW_CONFIG)
         else:
             st.info("Heatmap modularity belum tersedia karena belum ada graf valid per desa.")
 
@@ -3753,7 +3753,7 @@ def render_journal_comparison_section(result_df):
         )
         st.markdown("#### Grafik Modularity per Desa")
         st.caption("Sumbu X menampilkan nama desa dan sumbu Y menunjukkan nilai modularity untuk setiap metode pembobotan.")
-        st.plotly_chart(fig_modularity_line, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_modularity_line, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
         fig_modularity_bar = px.bar(
             modularity_line_df,
@@ -3781,7 +3781,7 @@ def render_journal_comparison_section(result_df):
         )
         st.markdown("#### Diagram Batang Modularity per Desa")
         st.caption("Diagram batang ini memudahkan perbandingan langsung nilai modularity antar metode pada setiap desa.")
-        st.plotly_chart(fig_modularity_bar, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+        st.plotly_chart(fig_modularity_bar, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
         method_cols = [col for col in modularity_table_df.columns if col != "Desa"]
         modularity_table_png = dataframe_to_png_bytes(
@@ -3810,7 +3810,7 @@ def render_journal_comparison_section(result_df):
                 props="font-weight: 700; color: #0f172a; border: 2px solid #0f766e;",
             )
         )
-        st.dataframe(modularity_styler, use_container_width=True, hide_index=True)
+        st.dataframe(modularity_styler, width="stretch", hide_index=True)
 
     plot_df = result_df[result_df["Status"] == "OK"].copy()
     plot_df["Node Coverage"] = np.where(
@@ -3833,7 +3833,7 @@ def render_journal_comparison_section(result_df):
         xaxis_title="Coverage Node di LCC",
         yaxis_title="Modularity",
     )
-    st.plotly_chart(fig_scatter, use_container_width=True, config=PLOTLY_DRAW_CONFIG)
+    st.plotly_chart(fig_scatter, width="stretch", config=PLOTLY_DRAW_CONFIG)
 
     score_table = score_df.copy()
     score_table["Mean_Modularity"] = score_table["Mean_Modularity"].map(lambda x: f"{float(x):.4f}")
@@ -3842,7 +3842,7 @@ def render_journal_comparison_section(result_df):
     score_table["Village_Win_Rate"] = score_table["Village_Win_Rate"].map(lambda x: f"{float(x):.2%}")
     score_table["Composite_Score"] = score_table["Composite_Score"].map(lambda x: f"{float(x):.3f}")
     st.markdown("### Tabel Skoring Metode")
-    st.dataframe(score_table, use_container_width=True, hide_index=True)
+    st.dataframe(score_table, width="stretch", hide_index=True)
 
     reasoning_lines = [
         f"Metode dengan skor total tertinggi adalah {winner_method}, sehingga paling layak dijadikan metode pembobotan utama untuk analisis Louvain pada dataset ini.",
@@ -3962,7 +3962,7 @@ display_df["Modularity"] = display_df["Modularity"].map(lambda x: f"{float(x):.4
 display_df["Threshold"] = display_df["Threshold"].map(lambda x: "-" if pd.isna(x) else f"{float(x):.2f}")
 
 st.markdown("### Tabel Hasil Semua Desa")
-st.dataframe(display_df, use_container_width=True, hide_index=True)
+st.dataframe(display_df, width="stretch", hide_index=True)
 
 pivot_df = result_df.copy()
 pivot_df["Ringkasan"] = pivot_df.apply(
@@ -3978,8 +3978,8 @@ pivot_df["Ringkasan"] = pivot_df.apply(
 pivot_df = pivot_df.pivot(index="Desa", columns="Metode", values="Ringkasan").reset_index()
 
 st.markdown("### Ringkasan Per Desa")
-st.dataframe(pivot_df, use_container_width=True, hide_index=True)
+st.dataframe(pivot_df, width="stretch", hide_index=True)
 
 with st.expander("Data Kepala Keluarga yang Dipakai", expanded=False):
     preview_cols = [col for col in ["family_id", col_desa, *EDGE_REKAP_COLS] if col in df_kk.columns]
-    st.dataframe(df_kk[preview_cols], use_container_width=True, hide_index=True)
+    st.dataframe(df_kk[preview_cols], width="stretch", hide_index=True)

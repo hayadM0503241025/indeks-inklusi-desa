@@ -769,36 +769,36 @@ def render_pca_section(
     chart_cols = st.columns(2)
     chart_cols[0].plotly_chart(
         build_scree_figure(explained_df, section_name),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_name}_scree",
     )
     chart_cols[1].plotly_chart(
         build_influence_bar_figure(influence_df, f"10 {section_name.lower()} paling berpengaruh"),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_name}_influence_bar",
     )
 
     mid_cols = st.columns(2)
     mid_cols[0].plotly_chart(
         build_loading_heatmap_figure(pca_result["loadings_df"], selected_components, f"Heatmap loading {section_name.lower()}"),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_name}_loading_heatmap",
     )
     mid_cols[1].plotly_chart(
         build_pc_scatter_figure(pca_result["scores_df"], household_df, f"Sebaran rumah tangga pada ruang PCA {section_name.lower()}"),
-        use_container_width=True,
+        width="stretch",
         key=f"{section_name}_pc_scatter",
     )
 
     table_tabs = st.tabs(["Ranking Pengaruh", "Loading PCA", "Explained Variance", "Missing Value"])
     with table_tabs[0]:
-        st.dataframe(influence_df, use_container_width=True, hide_index=True)
+        st.dataframe(influence_df, width="stretch", hide_index=True)
     with table_tabs[1]:
-        st.dataframe(pca_result["loadings_df"], use_container_width=True, hide_index=True)
+        st.dataframe(pca_result["loadings_df"], width="stretch", hide_index=True)
     with table_tabs[2]:
-        st.dataframe(explained_df, use_container_width=True, hide_index=True)
+        st.dataframe(explained_df, width="stretch", hide_index=True)
     with table_tabs[3]:
-        st.dataframe(pca_result["missing_df"], use_container_width=True, hide_index=True)
+        st.dataframe(pca_result["missing_df"], width="stretch", hide_index=True)
 
 
 def main() -> None:
